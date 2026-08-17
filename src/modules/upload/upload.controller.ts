@@ -1,0 +1,88 @@
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Post,
+  Req,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Request } from 'express';
+import { randomBytes } from 'crypto';
+import { promises as fs } from 'fs';
+import { basename, join } from 'path';
+
+const UPLOAD_DIR = join(process.cwd(), 'uploads');
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+const MIME_EXT: Record<string, string> = {
+  'image/webp': 'webp',
+  'image/jpeg': 'webp',
+  'image/png': 'webp',
+  'image/gif': 'webp',
+  'image/svg+xml': 'webp',
+};
+
+interface UploadedFileLike {
+  mimetype: string;
+  buffer: Buffer;
+}
+
+interface UploadBody {
+  oldPath?: string;
+}
+
+@Controller('admin/upload')
+export class UploadController {
+  @Post()
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_SIZE } }))
+  async upload(
+    @UploadedFile() file: UploadedFileLike,
+    @Body() body: UploadBody,
+    @Req() req: Request,
+  ) {
+    if (!file || !file.buffer) {
+      throw new BadRequestException('Fichier manquant.');
+    }
+    if (!file.mimetype?.startsWith('image/')) {
+      throw new BadRequestException('Le fichier doit être une image.');
+    }
+
+    const extension = MIME_EXT[file.mimetype] ?? 'webp';
+    const name = `${Date.now()}-${randomBytes(4).toString('hex')}.${extension}`;
+
+    await fs.mkdir(UPLOAD_DIR, { recursive: true });
+    await fs.writeFile(join(UPLOAD_DIR, name), file.buffer);
+
+    if (body.oldPath) {
+      await this.removeStored(body.oldPath);
+    }
+
+    const origin = `${req.protocol}://${req.get('host')}`;
+    return {
+      url: `${origin}/uploads/${name}`,
+      path: `/uploads/${name}`,
+      fileName: undefined,
+    };
+  }
+
+  private async removeStored(pathLike: string): Promise<void> {
+    if (!pathLike || typeof pathLike !== 'string') {
+      return;
+    }
+    const name = basename(pathLike);
+    if (!name || !/^[a-z0-9._-]+$/i.test(name)) {
+      return;
+    }
+    const target = join(UPLOAD_DIR, name);
+    if (!target.startsWith(UPLOAD_DIR)) {
+      return;
+    }
+    try {
+      await fs.unlink(target);
+    } catch {
+      // Fichier déjà absent — ignoré
+    }
+  }
+}

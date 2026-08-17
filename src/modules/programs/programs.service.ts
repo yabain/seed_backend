@@ -1,0 +1,72 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, isValidObjectId } from 'mongoose';
+import { Program, ProgramDocument } from './schemas/program.schema';
+import { CreateProgramDto } from './dto/create-program.dto';
+import { UpdateProgramDto } from './dto/update-program.dto';
+
+@Injectable()
+export class ProgramsService {
+  constructor(
+    @InjectModel(Program.name)
+    private readonly programModel: Model<ProgramDocument>,
+  ) {}
+
+  private ensureId(id: string): string {
+    if (!isValidObjectId(id)) {
+      throw new NotFoundException('Programme introuvable');
+    }
+    return id;
+  }
+
+  async create(dto: CreateProgramDto): Promise<Program> {
+    const program = new this.programModel(dto);
+    return program.save();
+  }
+
+  async findAllPublic(): Promise<Program[]> {
+    return this.programModel
+      .find({ isActive: true })
+      .sort({ order: 1, createdAt: -1 })
+      .lean()
+      .exec();
+  }
+
+  async findAll(): Promise<Program[]> {
+    return this.programModel
+      .find()
+      .sort({ order: 1, createdAt: -1 })
+      .lean()
+      .exec();
+  }
+
+  async findOne(id: string): Promise<Program> {
+    const realId = this.ensureId(id);
+    const program = await this.programModel.findById(realId).lean().exec();
+    if (!program) {
+      throw new NotFoundException('Programme introuvable');
+    }
+    return program;
+  }
+
+  async update(id: string, dto: UpdateProgramDto): Promise<Program> {
+    const realId = this.ensureId(id);
+    const program = await this.programModel
+      .findByIdAndUpdate(realId, dto, { new: true })
+      .lean()
+      .exec();
+    if (!program) {
+      throw new NotFoundException('Programme introuvable');
+    }
+    return program;
+  }
+
+  async remove(id: string): Promise<{ deleted: boolean }> {
+    const realId = this.ensureId(id);
+    const result = await this.programModel.findByIdAndDelete(realId).exec();
+    if (!result) {
+      throw new NotFoundException('Programme introuvable');
+    }
+    return { deleted: true };
+  }
+}
