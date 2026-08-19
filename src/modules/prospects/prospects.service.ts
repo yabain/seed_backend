@@ -10,6 +10,7 @@ import { Prospect, ProspectDocument } from './prospect.schema';
 import { CreateProspectDto, UpdateProspectDto } from './dto/prospect.dto';
 import { MailService } from '../mail/mail.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
+import { SiteService } from '../site/site.service';
 
 export interface ProspectItem {
   id: string;
@@ -41,6 +42,7 @@ export class ProspectsService {
     @InjectModel(Prospect.name)
     private readonly prospectModel: Model<ProspectDocument>,
     private readonly mailService: MailService,
+    private readonly siteService: SiteService,
   ) {}
 
   async list(page = 1, limit = 25, keyword = ''): Promise<ProspectListResult> {
@@ -223,6 +225,13 @@ export class ProspectsService {
   private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
     if (!prospect.email) return;
 
+    const siteConfig = await this.siteService.getPublicConfig();
+    const branding = {
+      logo: siteConfig.logo,
+      orgName: siteConfig.orgName,
+      social: siteConfig.social,
+    };
+
     const html = renderEmailLayout({
       title: 'Bienvenue sur SEED',
       preheader: "Merci de vous être inscrit à notre lettre d'information.",
@@ -233,6 +242,7 @@ export class ProspectsService {
           Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer cet e-mail.
         </p>
       `,
+      branding,
     });
 
     await this.mailService.send({

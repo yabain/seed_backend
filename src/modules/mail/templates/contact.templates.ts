@@ -9,11 +9,27 @@ export interface ContactPayload {
   createdAt?: Date;
 }
 
+export interface ContactTemplateOptions {
+  payload: ContactPayload;
+  branding?: {
+    logo?: string;
+    orgName?: string;
+    social?: {
+      facebook?: string;
+      instagram?: string;
+      linkedin?: string;
+      twitter?: string;
+      youtube?: string;
+    };
+  };
+}
+
 /**
  * E-mail de notification envoyé aux administrateurs lorsqu'un
  * visiteur soumet le formulaire de contact.
  */
-export function contactNotificationTemplate(payload: ContactPayload): string {
+export function contactNotificationTemplate(options: ContactTemplateOptions): string {
+  const { payload, branding } = options;
   const receivedAt = (payload.createdAt ?? new Date()).toLocaleString('fr-FR', {
     dateStyle: 'long',
     timeStyle: 'short',
@@ -53,6 +69,7 @@ export function contactNotificationTemplate(payload: ContactPayload): string {
     title: `Nouveau message de contact — ${payload.subject}`,
     preheader: `${payload.name} (${payload.email}) a envoyé un message sur le site SEED.`,
     contentHtml,
+    branding,
   });
 }
 
@@ -60,7 +77,8 @@ export function contactNotificationTemplate(payload: ContactPayload): string {
  * E-mail de confirmation automatiquement envoyé au visiteur qui vient
  * de soumettre le formulaire de contact.
  */
-export function contactConfirmationTemplate(payload: ContactPayload): string {
+export function contactConfirmationTemplate(options: ContactTemplateOptions): string {
+  const { payload, branding } = options;
   const recap = [
     renderEmailField('Nom', payload.name),
     renderEmailField('E-mail', payload.email),
@@ -72,7 +90,7 @@ export function contactConfirmationTemplate(payload: ContactPayload): string {
     <p style="margin:0 0 16px;">Bonjour <strong>${escapeHtml(payload.name)}</strong>,</p>
     <p style="margin:0 0 16px;">
       Nous vous remercions de nous avoir &eacute;crit. Votre message a bien &eacute;t&eacute;
-      re&ccedil;u par notre &eacute;quipe, et nous reviendrons vers vous dans les plus brefs d&eacute;lais.
+      re&ccedil;u par notre &eacute;quipe et nous reviendrons vers vous dans les plus brefs d&eacute;lais.
     </p>
     <p style="margin:0 0 16px;">Voici un r&eacute;captulatif de votre demande :</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;">
@@ -84,13 +102,14 @@ export function contactConfirmationTemplate(payload: ContactPayload): string {
       En attendant, n'h&eacute;sitez pas &agrave; poursuivre votre navigation sur
       <a href="#" style="color:#0f766e;font-weight:600;">notre plateforme</a> pour d&eacute;couvrir nos actions.
     </p>
-    <p style="margin:6px 0 0;color:#64748b;">L'&eacute;quipe SEED &mdash; Yaba-In SARL vous remercie.</p>
+    <p style="margin:6px 0 0;color:#64748b;">L'&eacute;quipe SEEDS vous remercie.</p>
   `;
 
   return renderEmailLayout({
     title: 'Nous avons bien reçu votre message',
     preheader: `Merci ${payload.name}, votre message a bien été enregistré.`,
     contentHtml,
-    footerText: `© ${new Date().getFullYear()} SEED — Yaba-In SARL. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`,
+    footerText: `© ${new Date().getFullYear()} SEEDS. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`,
+    branding,
   });
 }

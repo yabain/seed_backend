@@ -262,7 +262,7 @@ export class SeedService implements OnModuleInit {
         logo: '',
         website: 'https://yaba-in.com',
         description:
-          'Entreprise technologique et partenaire technique de SEED.',
+          'Entreprise technologique et partenaire technique de SEEDS.',
         order: 1,
         isActive: true,
       },

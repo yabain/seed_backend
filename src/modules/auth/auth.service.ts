@@ -19,6 +19,7 @@ import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
 import { MailService } from '../mail/mail.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { SiteService } from '../site/site.service';
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
@@ -37,6 +38,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
     private readonly auditLogService: AuditLogService,
+    private readonly siteService: SiteService,
   ) {}
 
   async validateAdmin(
@@ -85,6 +87,13 @@ export class AuthService {
   }
 
   private async sendCodeEmail(to: string, code: string): Promise<void> {
+    const siteConfig = await this.siteService.getPublicConfig();
+    const branding = {
+      logo: siteConfig.logo,
+      orgName: siteConfig.orgName,
+      social: siteConfig.social,
+    };
+
     const html = renderEmailLayout({
       title: 'Votre code de connexion',
       preheader: `Votre code de connexion SEED est ${code}. Il expire dans 10 minutes.`,
@@ -101,6 +110,7 @@ export class AuthService {
           Ce code est valable pendant <strong>10 minutes</strong>. Si vous n&rsquo;&ecirc;tes pas &agrave; l&rsquo;origine de cette demande, ignorez cet e-mail.
         </p>
       `,
+      branding,
     });
 
     const sent = await this.mailService.send({

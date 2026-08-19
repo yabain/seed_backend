@@ -12,9 +12,11 @@ import {
   TwoFactorCodeSchema,
 } from './schemas/two-factor-code.schema';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { SiteModule } from '../site/site.module';
 
 @Module({
   imports: [
+    SiteModule,
     MongooseModule.forFeature([
       { name: Admin.name, schema: AdminSchema },
       { name: TwoFactorCode.name, schema: TwoFactorCodeSchema },

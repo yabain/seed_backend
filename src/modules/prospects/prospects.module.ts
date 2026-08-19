@@ -4,9 +4,11 @@ import { ProspectsController } from './prospects.controller';
 import { ProspectsService } from './prospects.service';
 import { Prospect, ProspectSchema } from './prospect.schema';
 import { MailModule } from '../mail/mail.module';
+import { SiteModule } from '../site/site.module';
 
 @Module({
   imports: [
+    SiteModule,
     MongooseModule.forFeature([
       { name: Prospect.name, schema: ProspectSchema },
     ]),

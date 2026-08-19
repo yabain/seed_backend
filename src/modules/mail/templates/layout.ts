@@ -6,9 +6,64 @@ export function renderEmailLayout(options: {
   preheader?: string;
   contentHtml: string;
   footerText?: string;
+  branding?: {
+    logo?: string;
+    orgName?: string;
+    social?: {
+      facebook?: string;
+      instagram?: string;
+      linkedin?: string;
+      twitter?: string;
+      youtube?: string;
+    };
+  };
 }): string {
-  const { title, preheader = '', contentHtml, footerText } = options;
+  const { title, preheader = '', contentHtml, footerText, branding } = options;
   const year = new Date().getFullYear();
+  const logo = branding?.logo?.trim();
+  const orgName = escapeHtml(branding?.orgName?.trim() ?? 'SEED');
+  const logoHtml = logo
+    ? `<img src="${escapeHtml(logo)}" alt="${orgName}" style="display:inline-block;max-height:38px;max-width:160px;height:auto;vertical-align:middle;margin-right:10px;" />`
+    : `<span style="display:inline-block;width:38px;height:38px;line-height:38px;text-align:center;background:#0f766e;color:#ffffff;border-radius:10px;font-size:20px;font-weight:bold;margin-right:10px;vertical-align:middle;">${orgName.charAt(0)}</span>`;
+
+  const social = branding?.social;
+  let socialHtml = '';
+  if (social) {
+    const icons: { href: string; svg: string }[] = [];
+    if (social.facebook) {
+      icons.push({
+        href: social.facebook,
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></svg>`,
+      });
+    }
+    if (social.twitter) {
+      icons.push({
+        href: social.twitter,
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`,
+      });
+    }
+    if (social.linkedin) {
+      icons.push({
+        href: social.linkedin,
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`,
+      });
+    }
+    if (social.instagram) {
+      icons.push({
+        href: social.instagram,
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E1306C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>`,
+      });
+    }
+    if (social.youtube) {
+      icons.push({
+        href: social.youtube,
+        svg: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
+      });
+    }
+    if (icons.length) {
+      socialHtml = `<table cellpadding="0" cellspacing="0" style="margin-top:10px;"><tr>${icons.map(icon => `<td style="padding:0 6px;"><a href="${escapeHtml(icon.href)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;">${icon.svg}</a></td>`).join('')}</tr></table>`;
+    }
+  }
 
   return `
   <!doctype html>
@@ -26,13 +81,11 @@ export function renderEmailLayout(options: {
           <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 8px 30px rgba(15,23,42,.08);">
             <!-- En-tête -->
             <tr>
-              <td style="background:#0f172a;padding:20px 28px;">
+              <td style="background:none;padding:20px 28px;">
                 <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
                     <td>
-                      <span style="display:inline-block;width:38px;height:38px;line-height:38px;text-align:center;background:#0f766e;color:#ffffff;border-radius:10px;font-size:20px;font-weight:bold;margin-right:10px;vertical-align:middle;">S</span>
-                      <span style="color:#ffffff;font-size:18px;font-weight:bold;letter-spacing:.5px;vertical-align:middle;">SEED</span>
-                      <span style="color:#94a3b8;font-size:12px;vertical-align:middle;margin-left:8px;">Yaba-In SARL</span>
+                      ${logoHtml}
                     </td>
                   </tr>
                 </table>
@@ -54,10 +107,11 @@ export function renderEmailLayout(options: {
             <tr>
               <td style="background:#f8fafc;padding:18px 28px;border-top:1px solid #e2e8f0;">
                 <p style="margin:0 0 4px;color:#64748b;font-size:12px;">
-                  ${escapeHtml(footerText ?? `© ${year} SEED — Yaba-In SARL. Tous droits réservés.`)}
+                  ${escapeHtml(footerText ?? `© ${year} ${orgName}. Tous droits réservés.`)}
                 </p>
                 <p style="margin:0;color:#94a3b8;font-size:11px;">
-                  Cet e-mail a été envoyé automatiquement par la plateforme SEED. Merci de ne pas y répondre directement.</p>
+                  Cet e-mail a été envoyé automatiquement par la plateforme ${orgName}. Merci de ne pas y répondre directement.</p>
+                ${socialHtml}
               </td>
             </tr>
           </table>

@@ -9,7 +9,7 @@ export class AppService {
     return {
       name: 'SEED API',
       description:
-        'Plateforme web institutionnelle de l’organisation SEED - Yaba-In SARL',
+        'Plateforme web institutionnelle de l’organisation SEEDS',
       version: '0.1.0',
       documentation: 'Voir le README.md pour la procédure de démarrage local.',
       status: 'online',

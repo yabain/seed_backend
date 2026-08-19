@@ -7,9 +7,11 @@ import {
   ContactMessageSchema,
 } from './schemas/contact-message.schema';
 import { Admin, AdminSchema } from '../auth/schemas/admin.schema';
+import { SiteModule } from '../site/site.module';
 
 @Module({
   imports: [
+    SiteModule,
     MongooseModule.forFeature([
       { name: ContactMessage.name, schema: ContactMessageSchema },
       { name: Admin.name, schema: AdminSchema },

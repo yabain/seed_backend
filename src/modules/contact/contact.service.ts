@@ -13,7 +13,9 @@ import { MailService } from '../mail/mail.service';
 import {
   contactNotificationTemplate,
   contactConfirmationTemplate,
+  type ContactTemplateOptions,
 } from '../mail/templates/contact.templates';
+import { SiteService } from '../site/site.service';
 
 @Injectable()
 export class ContactService {
@@ -26,6 +28,7 @@ export class ContactService {
     private readonly adminModel: Model<AdminDocument>,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly siteService: SiteService,
   ) {}
 
   async create(dto: CreateContactMessageDto): Promise<ContactMessage> {
@@ -44,11 +47,18 @@ export class ContactService {
       createdAt: message.createdAt,
     };
 
+    const siteConfig = await this.siteService.getPublicConfig();
+    const branding: ContactTemplateOptions['branding'] = {
+      logo: siteConfig.logo,
+      orgName: siteConfig.orgName,
+      social: siteConfig.social,
+    };
+
     // 1) Notification aux administrateurs (avec récapitulatif complet).
     await this.mailService.send({
       to: recipients,
       subject: `Nouveau message de contact — ${dto.subject}`,
-      html: contactNotificationTemplate(fromVisitor),
+      html: contactNotificationTemplate({ payload: fromVisitor, branding }),
       replyTo: dto.email,
     });
 
@@ -56,7 +66,7 @@ export class ContactService {
     await this.mailService.send({
       to: dto.email,
       subject: 'Nous avons bien reçu votre message',
-      html: contactConfirmationTemplate(fromVisitor),
+      html: contactConfirmationTemplate({ payload: fromVisitor, branding }),
     });
 
     return message;
