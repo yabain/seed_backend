@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ProspectsController } from './prospects.controller';
+import {
+  ProspectsController,
+  ProspectsPublicController,
+} from './prospects.controller';
 import { ProspectsService } from './prospects.service';
 import { Prospect, ProspectSchema } from './prospect.schema';
 import { MailModule } from '../mail/mail.module';
@@ -14,7 +17,7 @@ import { SiteModule } from '../site/site.module';
     ]),
     MailModule,
   ],
-  controllers: [ProspectsController],
+  controllers: [ProspectsController, ProspectsPublicController],
   providers: [ProspectsService],
   exports: [ProspectsService],
 })

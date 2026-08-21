@@ -106,11 +106,21 @@ export class ProspectsService {
       );
     }
 
-    const created = await this.prospectModel.create({
-      name: dto.name?.trim() || '',
-      email,
-      phone,
-    });
+    let created: ProspectDocument;
+    try {
+      created = await this.prospectModel.create({
+        name: dto.name?.trim() || '',
+        email,
+        phone,
+      });
+    } catch (error) {
+      if (this.isDuplicateKeyError(error)) {
+        throw new BadRequestException(
+          'Un prospect existe déjà avec cet e-mail ou ce numéro.',
+        );
+      }
+      throw error;
+    }
 
     const sanitized = this.sanitize(
       (created.toObject ? created.toObject() : created) as unknown as Record<
@@ -151,18 +161,28 @@ export class ProspectsService {
       );
     }
 
-    const updated = await this.prospectModel
-      .findByIdAndUpdate(
-        id,
-        {
-          name: dto.name?.trim() ?? existing.name,
-          email: email || existing.email,
-          phone: phone || existing.phone,
-        },
-        { new: true },
-      )
-      .lean()
-      .exec();
+    let updated;
+    try {
+      updated = await this.prospectModel
+        .findByIdAndUpdate(
+          id,
+          {
+            name: dto.name?.trim() ?? existing.name,
+            email: email || existing.email,
+            phone: phone || existing.phone,
+          },
+          { new: true },
+        )
+        .lean()
+        .exec();
+    } catch (error) {
+      if (this.isDuplicateKeyError(error)) {
+        throw new BadRequestException(
+          'Un prospect existe déjà avec cet e-mail ou ce numéro.',
+        );
+      }
+      throw error;
+    }
 
     if (!updated) {
       throw new NotFoundException('Prospect introuvable.');
@@ -364,11 +384,28 @@ export class ProspectsService {
           skipped++;
         }
       } else {
-        await this.prospectModel.create({ name, email, phone });
-        created++;
+        try {
+          await this.prospectModel.create({ name, email, phone });
+          created++;
+        } catch (error) {
+          if (this.isDuplicateKeyError(error)) {
+            skipped++;
+          } else {
+            throw error;
+          }
+        }
       }
     }
 
     return { totalRows: jsonData.length, created, updated, skipped, ignored };
+  }
+
+  private isDuplicateKeyError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: number }).code === 11000
+    );
   }
 }

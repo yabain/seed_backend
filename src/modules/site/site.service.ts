@@ -1,8 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SiteConfig, SiteConfigDocument } from './schemas/site-config.schema';
 import { UpdateSiteConfigDto } from './dto/update-site-config.dto';
+
+const SCALAR_KEYS = [
+  'orgName',
+  'tagline',
+  'description',
+  'logo',
+  'heroTitle',
+  'heroSubtitle',
+  'address',
+  'phone',
+  'phone2',
+  'email',
+] as const;
 
 const DEFAULT_CONFIG = {
   orgName: 'SEED',
@@ -64,9 +77,15 @@ export class SiteService {
   }
 
   async update(dto: UpdateSiteConfigDto): Promise<SiteConfig> {
+    if (!this.hasMeaningfulPayload(dto)) {
+      throw new BadRequestException(
+        'Payload vide : aucune donnée à mettre à jour.',
+      );
+    }
+
     const config = await this.getOrCreate();
 
-    config.set(dto);
+    config.set(this.compact(dto));
     if (dto.social) {
       config.set('social', {
         ...DEFAULT_CONFIG.social,
@@ -83,5 +102,37 @@ export class SiteService {
     }
     await config.save();
     return config.toObject();
+  }
+
+  private hasMeaningfulPayload(dto: UpdateSiteConfigDto): boolean {
+    const hasScalar = SCALAR_KEYS.some((key) => {
+      const value = dto[key];
+      return typeof value === 'string' && value.trim().length > 0;
+    });
+    if (hasScalar) {
+      return true;
+    }
+    if (
+      dto.social &&
+      Object.values(dto.social).some(
+        (value) => typeof value === 'string' && value.trim().length > 0,
+      )
+    ) {
+      return true;
+    }
+    if (dto.segments && Object.values(dto.segments).some((value) => typeof value === 'boolean')) {
+      return true;
+    }
+    return false;
+  }
+
+  private compact(dto: UpdateSiteConfigDto): Record<string, unknown> {
+    const patch: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(dto)) {
+      if (value !== undefined) {
+        patch[key] = value;
+      }
+    }
+    return patch;
   }
 }
