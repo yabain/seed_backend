@@ -11,6 +11,10 @@ import {
   TwoFactorCode,
   TwoFactorCodeSchema,
 } from './schemas/two-factor-code.schema';
+import {
+  PasswordResetToken,
+  PasswordResetTokenSchema,
+} from './schemas/password-reset-token.schema';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { SiteModule } from '../site/site.module';
 
@@ -20,6 +24,7 @@ import { SiteModule } from '../site/site.module';
     MongooseModule.forFeature([
       { name: Admin.name, schema: AdminSchema },
       { name: TwoFactorCode.name, schema: TwoFactorCodeSchema },
+      { name: PasswordResetToken.name, schema: PasswordResetTokenSchema },
     ]),
     PassportModule,
     JwtModule.registerAsync({

@@ -7,6 +7,8 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SendTwoFactorCodeDto } from './dto/send-two-factor-code.dto';
 import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('admin/auth')
@@ -48,5 +50,26 @@ export class AuthController {
     const ip = req.ip || req.connection?.remoteAddress;
     const userAgent = req.headers?.['user-agent'];
     return this.authService.verifyTwoFactor(verifyTwoFactorDto, ip, userAgent);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('forgot-password')
+  forgotPassword(
+    @Body() forgotPasswordDto: ForgotPasswordDto,
+    @Req() req: any,
+  ) {
+    const ip = req.ip || req.connection?.remoteAddress;
+    const userAgent = req.headers?.['user-agent'];
+    return this.authService.forgotPassword(forgotPasswordDto, ip, userAgent);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('reset-password')
+  resetPassword(@Body() resetPasswordDto: ResetPasswordDto, @Req() req: any) {
+    const ip = req.ip || req.connection?.remoteAddress;
+    const userAgent = req.headers?.['user-agent'];
+    return this.authService.resetPassword(resetPasswordDto, ip, userAgent);
   }
 }

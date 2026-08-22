@@ -5,7 +5,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import { createHash, randomBytes } from 'node:crypto';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Admin, AdminDocument } from './schemas/admin.schema';
@@ -13,9 +15,15 @@ import {
   TwoFactorCode,
   TwoFactorCodeDocument,
 } from './schemas/two-factor-code.schema';
+import {
+  PasswordResetToken,
+  PasswordResetTokenDocument,
+} from './schemas/password-reset-token.schema';
 import { LoginDto } from './dto/login.dto';
 import { SendTwoFactorCodeDto } from './dto/send-two-factor-code.dto';
 import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { MailService } from '../mail/mail.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -26,6 +34,8 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
 const MAX_TWO_FACTOR_ATTEMPTS = 5;
 
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -35,7 +45,10 @@ export class AuthService {
     @InjectModel(Admin.name) private readonly adminModel: Model<AdminDocument>,
     @InjectModel(TwoFactorCode.name)
     private readonly twoFactorCodeModel: Model<TwoFactorCodeDocument>,
+    @InjectModel(PasswordResetToken.name)
+    private readonly passwordResetTokenModel: Model<PasswordResetTokenDocument>,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly mailService: MailService,
     private readonly auditLogService: AuditLogService,
     private readonly siteService: SiteService,
@@ -452,6 +465,255 @@ export class AuthService {
         email: admin.email,
         role: admin.role,
       },
+    };
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async invalidatePreviousResetTokens(adminId: string): Promise<void> {
+    await this.passwordResetTokenModel
+      .updateMany(
+        { adminId, used: false, expiresAt: { $gt: new Date() } },
+        { used: true },
+      )
+      .exec();
+  }
+
+  private buildFrontendUrl(): string {
+    const explicit = this.configService.get<string>('FRONTEND_URL');
+    if (explicit) {
+      return explicit.replace(/\/+$/, '');
+    }
+    const clientOrigin = this.configService
+      .get<string>('CLIENT_ORIGIN')
+      ?.split(',')[0]
+      ?.trim();
+    return (clientOrigin || 'http://localhost:4200').replace(/\/+$/, '');
+  }
+
+  async forgotPassword(
+    forgotPasswordDto: ForgotPasswordDto,
+    ip?: string,
+    userAgent?: string,
+  ) {
+    const genericResponse = {
+      success: true,
+      message:
+        'Si un compte actif existe pour cette adresse, un e-mail contenant un lien de réinitialisation vient d’être envoyé.',
+    };
+
+    const admin = await this.adminModel
+      .findOne({ email: forgotPasswordDto.email.toLowerCase().trim() })
+      .exec();
+
+    if (!admin || !admin.isActive) {
+      await this.auditLogService.record({
+        action: 'auth.password_reset_requested',
+        resourceType: 'admin',
+        metadata: { reason: 'user_not_found_or_inactive' },
+        method: 'POST',
+        path: '/admin/auth/forgot-password',
+        statusCode: 200,
+        ip,
+        userAgent,
+      });
+      return genericResponse;
+    }
+
+    await this.invalidatePreviousResetTokens(admin._id.toString());
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+    await this.passwordResetTokenModel.create({
+      adminId: admin._id.toString(),
+      tokenHash: this.hashToken(token),
+      used: false,
+      expiresAt,
+    });
+
+    const resetUrl = `${this.buildFrontendUrl()}/admin/reset-password?token=${token}`;
+
+    const siteConfig = await this.siteService.getPublicConfig();
+    const branding = {
+      logo: siteConfig.logo,
+      orgName: siteConfig.orgName,
+      social: siteConfig.social,
+    };
+
+    const html = renderEmailLayout({
+      title: 'Réinitialisation de votre mot de passe',
+      preheader:
+        'Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe. Ce lien expire dans 1 heure.',
+      contentHtml: `
+        <p style="margin:0 0 16px;">Bonjour <strong>${escapeHtml(admin.name)}</strong>,</p>
+        <p style="margin:0 0 16px;">Vous avez demandé la réinitialisation du mot de passe de votre compte sur la plateforme <strong>SEED</strong>.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+          <tr>
+            <td align="center" style="background:#0f766e;border-radius:8px;padding:14px 24px;">
+              <a href="${escapeHtml(resetUrl)}" style="color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;">
+                Réinitialiser mon mot de passe
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:0 0 8px;color:#475569;font-size:14px;">
+          Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur&nbsp;:
+        </p>
+        <p style="margin:0 0 16px;word-break:break-all;color:#0f766e;font-size:13px;">
+          ${escapeHtml(resetUrl)}
+        </p>
+        <p style="margin:0;color:#475569;font-size:14px;">
+          Ce lien est valable pendant <strong>1 heure</strong>. Si vous n&rsquo;&ecirc;tes pas &agrave; l&rsquo;origine de cette demande, ignorez cet e-mail : votre mot de passe restera inchangé.
+        </p>
+      `,
+      branding,
+    });
+
+    const sent = await this.mailService.send({
+      to: admin.email,
+      subject: 'Réinitialisation de votre mot de passe — SEED',
+      html,
+    });
+
+    if (!sent) {
+      this.logger.warn(
+        `E-mail de réinitialisation non envoyé à ${admin.email}.`,
+      );
+    }
+
+    await this.auditLogService.record({
+      actorId: String(admin._id),
+      actorEmail: admin.email,
+      action: 'auth.password_reset_requested',
+      resourceType: 'admin',
+      resourceId: String(admin._id),
+      metadata: { emailSent: sent, ip },
+      method: 'POST',
+      path: '/admin/auth/forgot-password',
+      statusCode: 200,
+      ip,
+      userAgent,
+    });
+
+    return genericResponse;
+  }
+
+  async resetPassword(
+    resetPasswordDto: ResetPasswordDto,
+    ip?: string,
+    userAgent?: string,
+  ) {
+    const tokenHash = this.hashToken(resetPasswordDto.token);
+
+    const record = await this.passwordResetTokenModel
+      .findOne({
+        tokenHash,
+        used: false,
+        expiresAt: { $gt: new Date() },
+      })
+      .exec();
+
+    if (!record) {
+      await this.auditLogService.record({
+        action: 'auth.password_reset_failed',
+        resourceType: 'admin',
+        metadata: { reason: 'invalid_or_expired_token' },
+        method: 'POST',
+        path: '/admin/auth/reset-password',
+        statusCode: 400,
+        ip,
+        userAgent,
+      });
+      throw new BadRequestException(
+        'Ce lien de réinitialisation est invalide ou a expiré. Veuillez faire une nouvelle demande.',
+      );
+    }
+
+    const admin = await this.adminModel.findById(record.adminId).exec();
+
+    if (!admin || !admin.isActive) {
+      record.used = true;
+      await record.save();
+
+      await this.auditLogService.record({
+        action: 'auth.password_reset_failed',
+        resourceType: 'admin',
+        metadata: { reason: 'user_not_found_or_inactive' },
+        method: 'POST',
+        path: '/admin/auth/reset-password',
+        statusCode: 400,
+        ip,
+        userAgent,
+      });
+      throw new BadRequestException(
+        'Ce lien de réinitialisation est invalide ou a expiré. Veuillez faire une nouvelle demande.',
+      );
+    }
+
+    const hashed = await bcrypt.hash(resetPasswordDto.password, 10);
+
+    await this.adminModel.findByIdAndUpdate(admin._id, {
+      password: hashed,
+      loginAttempts: 0,
+      lockoutUntil: null,
+      twoFactorAttempts: 0,
+    });
+
+    await this.invalidatePreviousResetTokens(admin._id.toString());
+    record.used = true;
+    await record.save();
+
+    const siteConfig = await this.siteService.getPublicConfig();
+    const branding = {
+      logo: siteConfig.logo,
+      orgName: siteConfig.orgName,
+      social: siteConfig.social,
+    };
+
+    const html = renderEmailLayout({
+      title: 'Votre mot de passe a été modifié',
+      preheader: 'Confirmation de la modification de votre mot de passe SEED.',
+      contentHtml: `
+        <p style="margin:0 0 16px;">Bonjour <strong>${escapeHtml(admin.name)}</strong>,</p>
+        <p style="margin:0 0 16px;">
+          Votre mot de passe vient d&rsquo;&ecirc;tre modifié avec succès. Vous pouvez dès à présent vous connecter avec vos nouveaux identifiants.
+        </p>
+        <p style="margin:0;color:#475569;font-size:14px;">
+          Si vous n&rsquo;&ecirc;tes pas &agrave; l&rsquo;origine de cette modification, contactez immédiatement un administrateur de la plateforme.
+        </p>
+      `,
+      branding,
+    });
+
+    void this.mailService
+      .send({
+        to: admin.email,
+        subject: '🔒 Votre mot de passe a été modifié — SEED',
+        html,
+      })
+      .catch((error) =>
+        this.logger.warn('Send password-changed email failed:', error),
+      );
+
+    await this.auditLogService.record({
+      actorId: String(admin._id),
+      actorEmail: admin.email,
+      action: 'auth.password_reset_completed',
+      resourceType: 'admin',
+      resourceId: String(admin._id),
+      resourceLabel: admin.email,
+      method: 'POST',
+      path: '/admin/auth/reset-password',
+      statusCode: 200,
+      ip,
+      userAgent,
+    });
+
+    return {
+      success: true,
+      message: 'Votre mot de passe a été réinitialisé avec succès.',
     };
   }
 }

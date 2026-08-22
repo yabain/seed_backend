@@ -5,6 +5,10 @@ import { Program, ProgramDocument } from './schemas/program.schema';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 @Injectable()
 export class ProgramsService {
   constructor(
@@ -32,12 +36,42 @@ export class ProgramsService {
       .exec();
   }
 
-  async findAll(): Promise<Program[]> {
-    return this.programModel
-      .find()
-      .sort({ order: 1, createdAt: -1 })
-      .lean()
-      .exec();
+  async findAll(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<{
+    items: Program[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = Math.max(Number(query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 100);
+    const filter: Record<string, unknown> = {};
+
+    const search = (query.search ?? '').trim();
+    if (search) {
+      const escaped = escapeRegExp(search);
+      filter.$or = [
+        { title: { $regex: escaped, $options: 'i' } },
+        { excerpt: { $regex: escaped, $options: 'i' } },
+        { description: { $regex: escaped, $options: 'i' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.programModel
+        .find(filter)
+        .sort({ order: 1, createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec(),
+      this.programModel.countDocuments(filter).exec(),
+    ]);
+
+    return { items, total, page, limit };
   }
 
   async findOne(id: string): Promise<Program> {

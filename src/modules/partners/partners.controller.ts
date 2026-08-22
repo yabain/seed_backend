@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { PartnersService } from './partners.service';
 import { CreatePartnerDto } from './dto/create-partner.dto';
@@ -23,8 +24,8 @@ export class PartnersController {
   }
 
   @Get('all')
-  findAll() {
-    return this.partnersService.findAll();
+  findAll(@Query() query: { page?: number; limit?: number; search?: string }) {
+    return this.partnersService.findAll(query);
   }
 
   @Get(':id')

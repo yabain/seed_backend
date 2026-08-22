@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ProgramsService } from './programs.service';
 import { CreateProgramDto } from './dto/create-program.dto';
@@ -23,8 +24,8 @@ export class ProgramsController {
   }
 
   @Get('all')
-  findAll() {
-    return this.programsService.findAll();
+  findAll(@Query() query: { page?: number; limit?: number; search?: string }) {
+    return this.programsService.findAll(query);
   }
 
   @Get(':id')

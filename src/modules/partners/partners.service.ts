@@ -5,6 +5,10 @@ import { Partner, PartnerDocument } from './schemas/partner.schema';
 import { CreatePartnerDto } from './dto/create-partner.dto';
 import { UpdatePartnerDto } from './dto/update-partner.dto';
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 @Injectable()
 export class PartnersService {
   constructor(
@@ -32,12 +36,42 @@ export class PartnersService {
       .exec();
   }
 
-  async findAll(): Promise<Partner[]> {
-    return this.partnerModel
-      .find()
-      .sort({ order: 1, createdAt: -1 })
-      .lean()
-      .exec();
+  async findAll(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<{
+    items: Partner[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = Math.max(Number(query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 100);
+    const filter: Record<string, unknown> = {};
+
+    const search = (query.search ?? '').trim();
+    if (search) {
+      const escaped = escapeRegExp(search);
+      filter.$or = [
+        { name: { $regex: escaped, $options: 'i' } },
+        { email: { $regex: escaped, $options: 'i' } },
+        { website: { $regex: escaped, $options: 'i' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.partnerModel
+        .find(filter)
+        .sort({ order: 1, createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec(),
+      this.partnerModel.countDocuments(filter).exec(),
+    ]);
+
+    return { items, total, page, limit };
   }
 
   async findOne(id: string): Promise<Partner> {

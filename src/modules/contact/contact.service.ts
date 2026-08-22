@@ -102,6 +102,7 @@ export class ContactService {
     page?: number;
     limit?: number;
     read?: string;
+    search?: string;
   }): Promise<{
     items: ContactMessage[];
     total: number;
@@ -115,6 +116,17 @@ export class ContactService {
 
     if (query.read === 'true' || query.read === 'false') {
       filter.isRead = query.read === 'true';
+    }
+
+    const search = (query.search ?? '').trim();
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = [
+        { name: { $regex: escaped, $options: 'i' } },
+        { email: { $regex: escaped, $options: 'i' } },
+        { subject: { $regex: escaped, $options: 'i' } },
+        { message: { $regex: escaped, $options: 'i' } },
+      ];
     }
 
     const [items, total, unreadCount] = await Promise.all([
