@@ -44,6 +44,12 @@ export class SiteConfig {
   @Prop({ default: '' })
   email: string;
 
+  @Prop({ default: '' })
+  primaryColor: string;
+
+  @Prop({ default: '' })
+  secondaryColor: string;
+
   @Prop({
     type: {
       facebook: { type: String, default: '' },

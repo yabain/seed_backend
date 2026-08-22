@@ -1,4 +1,13 @@
-import { IsBoolean, IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
+
+const HEX_COLOR_REGEX = /^(#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|)$/;
 
 export class SocialDto {
   @IsOptional()
@@ -95,6 +104,18 @@ export class UpdateSiteConfigDto {
   @IsOptional()
   @IsEmail({}, { message: 'E-mail de contact invalide' })
   email?: string;
+
+  @IsOptional()
+  @Matches(HEX_COLOR_REGEX, {
+    message: 'Couleur primaire invalide : utilisez un code hexadécimal (ex: #0bcc9c)',
+  })
+  primaryColor?: string;
+
+  @IsOptional()
+  @Matches(HEX_COLOR_REGEX, {
+    message: 'Couleur secondaire invalide : utilisez un code hexadécimal (ex: #134e4a)',
+  })
+  secondaryColor?: string;
 
   @IsOptional()
   social?: SocialDto;

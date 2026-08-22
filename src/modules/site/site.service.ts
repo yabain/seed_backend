@@ -6,6 +6,8 @@ import { UpdateSiteConfigDto } from './dto/update-site-config.dto';
 
 const MEDIA_KEYS: readonly string[] = ['logo', 'favicon', 'ogImage'];
 
+const COLOR_KEYS: readonly string[] = ['primaryColor', 'secondaryColor'];
+
 const SCALAR_KEYS = [
   'orgName',
   'tagline',
@@ -19,6 +21,8 @@ const SCALAR_KEYS = [
   'phone',
   'phone2',
   'email',
+  'primaryColor',
+  'secondaryColor',
 ] as const;
 
 const DEFAULT_CONFIG = {
@@ -34,6 +38,8 @@ const DEFAULT_CONFIG = {
   phone: '',
   phone2: '',
   email: '',
+  primaryColor: '',
+  secondaryColor: '',
   social: {
     facebook: '',
     instagram: '',
@@ -112,15 +118,15 @@ export class SiteService {
 
   private hasMeaningfulPayload(dto: UpdateSiteConfigDto): boolean {
     const entries = Object.entries(dto).filter(([, value]) => value !== undefined);
-    const isMediaReset =
+    const isReset =
       entries.length > 0 &&
       entries.every(
         ([key, value]) =>
-          MEDIA_KEYS.includes(key) &&
+          (MEDIA_KEYS.includes(key) || COLOR_KEYS.includes(key)) &&
           typeof value === 'string' &&
           value.trim() === '',
       );
-    if (isMediaReset) {
+    if (isReset) {
       return true;
     }
 
