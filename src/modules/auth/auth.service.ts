@@ -464,6 +464,67 @@ export class AuthService {
         name: admin.name,
         email: admin.email,
         role: admin.role,
+        avatar: admin.avatar || undefined,
+      },
+    };
+  }
+
+  async getProfile(adminId: string) {
+    const admin = await this.adminModel.findById(adminId).exec();
+    if (!admin) {
+      throw new UnauthorizedException('Utilisateur introuvable.');
+    }
+    const createdAt =
+      (admin as unknown as { createdAt?: Date }).createdAt ?? new Date(0);
+    return {
+      id: admin._id.toString(),
+      name: admin.name,
+      email: admin.email,
+      phone: admin.phone || undefined,
+      avatar: admin.avatar || undefined,
+      role: admin.role,
+      isActive: admin.isActive,
+      lastLoginAt: admin.lastLoginAt?.toISOString(),
+      createdAt: createdAt.toISOString(),
+    };
+  }
+
+  async updateProfile(
+    adminId: string,
+    data: { name?: string; phone?: string; avatar?: string },
+  ) {
+    const admin = await this.adminModel.findById(adminId).exec();
+    if (!admin) {
+      throw new UnauthorizedException('Utilisateur introuvable.');
+    }
+
+    if (data.name !== undefined) {
+      admin.name = data.name.trim();
+    }
+    if (data.phone !== undefined) {
+      admin.phone = data.phone?.trim() || undefined;
+    }
+    if (data.avatar !== undefined) {
+      admin.avatar = data.avatar?.trim() || undefined;
+    }
+
+    await admin.save();
+
+    const createdAt =
+      (admin as unknown as { createdAt?: Date }).createdAt ?? new Date(0);
+
+    return {
+      updated: true,
+      admin: {
+        id: admin._id.toString(),
+        name: admin.name,
+        email: admin.email,
+        phone: admin.phone || undefined,
+        avatar: admin.avatar || undefined,
+        role: admin.role,
+        isActive: admin.isActive,
+        lastLoginAt: admin.lastLoginAt?.toISOString(),
+        createdAt: createdAt.toISOString(),
       },
     };
   }

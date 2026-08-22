@@ -32,11 +32,14 @@ export class Admin {
   @Prop({ required: true })
   password: string;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ trim: true })
   name: string;
 
   @Prop({ trim: true })
-  phone: string;
+  phone?: string;
+
+  @Prop({ trim: true })
+  avatar?: string;
 
   @Prop({
     enum: USER_ROLES,

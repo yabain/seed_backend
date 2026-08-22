@@ -48,6 +48,7 @@ export interface UsersListResult {
     name: string;
     email: string;
     phone?: string;
+    avatar?: string;
     role: UserRole;
     isActive: boolean;
     notifyContact: boolean;
@@ -72,6 +73,7 @@ export interface SanitizedAdmin {
   name: string;
   email: string;
   phone?: string;
+  avatar?: string;
   role: UserRole;
   isActive: boolean;
   notifyContact: boolean;
@@ -96,6 +98,7 @@ export class UsersService {
       name: (withoutPassword.name as string) ?? '',
       email: (withoutPassword.email as string) ?? '',
       phone: withoutPassword.phone as string | undefined,
+      avatar: (withoutPassword.avatar as string | undefined) || undefined,
       role: (withoutPassword.role as UserRole) ?? 'user',
       isActive: (withoutPassword.isActive as boolean) ?? true,
       notifyContact: (withoutPassword.notifyContact as boolean) ?? true,

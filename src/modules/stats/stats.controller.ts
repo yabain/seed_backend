@@ -23,6 +23,16 @@ export class StatsController {
     return this.statsService.dailySeries(days ? Number(days) || 14 : 14);
   }
 
+  @Get('series')
+  series(@Query('range') range?: string) {
+    const allowed = ['24h', '7d', '30d', '12m'] as const;
+    type Range = (typeof allowed)[number];
+    const value: Range = allowed.includes(range as Range)
+      ? (range as Range)
+      : '7d';
+    return this.statsService.series(value);
+  }
+
   @Get('top-pages')
   topPages(@Query('limit') limit?: string) {
     return this.statsService.topPages(limit ? Number(limit) || 10 : 10);
