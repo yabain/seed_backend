@@ -21,6 +21,12 @@ export class SiteConfig {
   logo: string;
 
   @Prop({ default: '' })
+  favicon: string;
+
+  @Prop({ default: '' })
+  ogImage: string;
+
+  @Prop({ default: '' })
   heroTitle: string;
 
   @Prop({ default: '' })

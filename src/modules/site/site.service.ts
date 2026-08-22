@@ -4,11 +4,15 @@ import { Model } from 'mongoose';
 import { SiteConfig, SiteConfigDocument } from './schemas/site-config.schema';
 import { UpdateSiteConfigDto } from './dto/update-site-config.dto';
 
+const MEDIA_KEYS: readonly string[] = ['logo', 'favicon', 'ogImage'];
+
 const SCALAR_KEYS = [
   'orgName',
   'tagline',
   'description',
   'logo',
+  'favicon',
+  'ogImage',
   'heroTitle',
   'heroSubtitle',
   'address',
@@ -22,6 +26,8 @@ const DEFAULT_CONFIG = {
   tagline: '',
   description: '',
   logo: '',
+  favicon: '',
+  ogImage: '',
   heroTitle: '',
   heroSubtitle: '',
   address: '',
@@ -105,6 +111,19 @@ export class SiteService {
   }
 
   private hasMeaningfulPayload(dto: UpdateSiteConfigDto): boolean {
+    const entries = Object.entries(dto).filter(([, value]) => value !== undefined);
+    const isMediaReset =
+      entries.length > 0 &&
+      entries.every(
+        ([key, value]) =>
+          MEDIA_KEYS.includes(key) &&
+          typeof value === 'string' &&
+          value.trim() === '',
+      );
+    if (isMediaReset) {
+      return true;
+    }
+
     const hasScalar = SCALAR_KEYS.some((key) => {
       const value = dto[key];
       return typeof value === 'string' && value.trim().length > 0;

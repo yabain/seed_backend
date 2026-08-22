@@ -61,6 +61,14 @@ export class UpdateSiteConfigDto {
 
   @IsOptional()
   @IsString()
+  favicon?: string;
+
+  @IsOptional()
+  @IsString()
+  ogImage?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(300)
   heroTitle?: string;
 
