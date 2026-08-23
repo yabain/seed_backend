@@ -34,6 +34,7 @@ export interface ContactTemplateOptions {
  */
 export function contactNotificationTemplate(options: ContactTemplateOptions): string {
   const { payload, branding, colors } = options;
+  const orgName = branding?.orgName?.trim() || 'SEEDS';
   const receivedAt = (payload.createdAt ?? new Date()).toLocaleString('fr-FR', {
     dateStyle: 'long',
     timeStyle: 'short',
@@ -71,7 +72,7 @@ export function contactNotificationTemplate(options: ContactTemplateOptions): st
 
   return renderEmailLayout({
     title: `Nouveau message de contact — ${payload.subject}`,
-    preheader: `${payload.name} (${payload.email}) a envoyé un message sur le site SEED.`,
+    preheader: `${payload.name} (${payload.email}) a envoyé un message sur le site ${orgName}.`,
     contentHtml,
     colors,
     branding,
@@ -84,6 +85,7 @@ export function contactNotificationTemplate(options: ContactTemplateOptions): st
  */
 export function contactConfirmationTemplate(options: ContactTemplateOptions): string {
   const { payload, branding, colors } = options;
+  const orgName = branding?.orgName?.trim() || 'SEEDS';
   const recap = [
     renderEmailField('Nom', payload.name),
     renderEmailField('E-mail', payload.email),
@@ -107,14 +109,14 @@ export function contactConfirmationTemplate(options: ContactTemplateOptions): st
       En attendant, n'h&eacute;sitez pas &agrave; poursuivre votre navigation sur
       <a href="#" style="color:#0f766e;font-weight:600;">notre plateforme</a> pour d&eacute;couvrir nos actions.
     </p>
-    <p style="margin:6px 0 0;color:#64748b;">L'&eacute;quipe SEEDS vous remercie.</p>
+    <p style="margin:6px 0 0;color:#64748b;">L'&eacute;quipe ${orgName} vous remercie.</p>
   `;
 
   return renderEmailLayout({
     title: 'Nous avons bien reçu votre message',
     preheader: `Merci ${payload.name}, votre message a bien été enregistré.`,
     contentHtml,
-    footerText: `© ${new Date().getFullYear()} SEEDS. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`,
+    footerText: `© ${new Date().getFullYear()} ${orgName}. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`,
     branding,
   });
 }
