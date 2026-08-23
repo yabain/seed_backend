@@ -21,6 +21,9 @@ export class Resource {
   fileUrl: string;
 
   @Prop({ default: '' })
+  previewImage: string;
+
+  @Prop({ default: '' })
   fileName: string;
 
   @Prop({ default: '' })

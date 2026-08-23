@@ -29,6 +29,10 @@ export class CreateResourceDto {
 
   @IsOptional()
   @IsString()
+  previewImage?: string;
+
+  @IsOptional()
+  @IsString()
   fileName?: string;
 
   @IsOptional()

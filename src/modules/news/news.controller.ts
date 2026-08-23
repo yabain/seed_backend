@@ -9,6 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { NewsService } from './news.service';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
 import { Public } from '../../common/decorators/public.decorator';
@@ -40,6 +41,7 @@ export class NewsController {
 
   // ---------- Back-office (admin) ----------
   @Get('all')
+  @Roles('admin', 'superadmin')
   findAll(
     @Query() query: { page?: number; limit?: number; status?: string; search?: string },
   ) {
@@ -53,16 +55,19 @@ export class NewsController {
 
   // ---------- Back-office (admin) ----------
   @Post()
+  @Roles('admin', 'superadmin')
   create(@Body() dto: CreateNewsDto) {
     return this.newsService.create(dto);
   }
 
   @Patch(':id')
+  @Roles('admin', 'superadmin')
   update(@Param('id') id: string, @Body() dto: UpdateNewsDto) {
     return this.newsService.update(id, dto);
   }
 
   @Delete(':id')
+  @Roles('admin', 'superadmin')
   remove(@Param('id') id: string) {
     return this.newsService.remove(id);
   }

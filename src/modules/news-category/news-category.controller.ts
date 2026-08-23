@@ -1,7 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { NewsCategoryService } from './news-category.service';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateNewsCategoryDto, UpdateNewsCategoryDto } from './dto/news-category.dto';
 
+@Roles('admin', 'superadmin')
 @Controller('news-categories')
 export class NewsCategoryController {
   constructor(private readonly newsCategoryService: NewsCategoryService) {}

@@ -9,10 +9,12 @@ import {
   Query,
 } from '@nestjs/common';
 import { PartnersService } from './partners.service';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CreatePartnerDto } from './dto/create-partner.dto';
 import { UpdatePartnerDto } from './dto/update-partner.dto';
 import { Public } from '../../common/decorators/public.decorator';
 
+@Roles('admin', 'superadmin')
 @Controller('partners')
 export class PartnersController {
   constructor(private readonly partnersService: PartnersService) {}

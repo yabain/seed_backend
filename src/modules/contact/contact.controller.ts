@@ -10,11 +10,13 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { ContactService } from './contact.service';
 import { CreateContactMessageDto } from './dto/create-contact-message.dto';
 import { UpdateContactMessageDto } from './dto/update-contact-message.dto';
 import { Public } from '../../common/decorators/public.decorator';
 
+@Roles('admin', 'superadmin')
 @Controller('contact')
 export class ContactController {
   constructor(private readonly contactService: ContactService) {}

@@ -1,8 +1,16 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { StatsService } from './stats.service';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CreatePageViewDto } from './dto/create-page-view.dto';
 import { Public } from '../../common/decorators/public.decorator';
 
+@Roles('admin', 'superadmin')
 @Controller('stats')
 export class StatsController {
   constructor(private readonly statsService: StatsService) {}
