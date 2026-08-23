@@ -1,11 +1,37 @@
 /**
  * Gabarit HTML commun aux e-mails SEED (en-tête, police, pied de page).
  */
+
+const DEFAULT_PRIMARY = '#0bcc9c';
+const DEFAULT_SECONDARY = '#0f766e';
+
+function normalizeHex(value: string | undefined, fallback: string): string {
+  const trimmed = (value ?? '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed.toLowerCase() : fallback;
+}
+
+/** Mélange une couleur hexadécimale avec du blanc (ratio 0 = couleur, 1 = blanc). */
+export function mixHexWithWhite(hex: string, ratio: number): string {
+  const clean = normalizeHex(hex, DEFAULT_PRIMARY);
+  const r = parseInt(clean.slice(1, 3), 16);
+  const g = parseInt(clean.slice(3, 5), 16);
+  const b = parseInt(clean.slice(5, 7), 16);
+  const mix = (channel: number) =>
+    Math.round(channel + (255 - channel) * ratio)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${mix(r)}${mix(g)}${mix(b)}`;
+}
+
 export function renderEmailLayout(options: {
   title: string;
   preheader?: string;
   contentHtml: string;
   footerText?: string;
+  colors?: {
+    primary?: string;
+    secondary?: string;
+  };
   branding?: {
     logo?: string;
     orgName?: string;
@@ -18,15 +44,17 @@ export function renderEmailLayout(options: {
     };
   };
 }): string {
-  const { title, preheader = '', contentHtml, footerText, branding } = options;
+  const { title, preheader = '', contentHtml, footerText, colors } = options;
+  const primary = normalizeHex(colors?.primary, DEFAULT_PRIMARY);
+  const secondary = normalizeHex(colors?.secondary, DEFAULT_SECONDARY);
   const year = new Date().getFullYear();
-  const logo = branding?.logo?.trim();
-  const orgName = escapeHtml(branding?.orgName?.trim() ?? 'SEED');
+  const logo = options.branding?.logo?.trim();
+  const orgName = escapeHtml(options.branding?.orgName?.trim() ?? 'SEED');
   const logoHtml = logo
     ? `<img src="${escapeHtml(logo)}" alt="${orgName}" style="display:inline-block;max-height:38px;max-width:160px;height:auto;vertical-align:middle;margin-right:10px;" />`
-    : `<span style="display:inline-block;width:38px;height:38px;line-height:38px;text-align:center;background:#0f766e;color:#ffffff;border-radius:10px;font-size:20px;font-weight:bold;margin-right:10px;vertical-align:middle;">${orgName.charAt(0)}</span>`;
+    : `<span style="display:inline-block;width:38px;height:38px;line-height:38px;text-align:center;background:${primary};color:#ffffff;border-radius:10px;font-size:20px;font-weight:bold;margin-right:10px;vertical-align:middle;">${orgName.charAt(0)}</span>`;
 
-  const social = branding?.social;
+  const social = options.branding?.social;
   let socialHtml = '';
   if (social) {
     const icons: { href: string; svg: string }[] = [];
@@ -105,7 +133,7 @@ export function renderEmailLayout(options: {
             </tr>
             <!-- Pied de page -->
             <tr>
-              <td style="background:#f8fafc;padding:18px 28px;border-top:1px solid #e2e8f0;">
+              <td style="background:${mixHexWithWhite(secondary, 0.92)};padding:18px 28px;border-top:3px solid ${secondary};">
                 <p style="margin:0 0 4px;color:#64748b;font-size:12px;">
                   ${escapeHtml(footerText ?? `© ${year} ${orgName}. Tous droits réservés.`)}
                 </p>

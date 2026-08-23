@@ -47,4 +47,12 @@ export class CreateUserDto {
   @IsOptional()
   @IsBoolean()
   notifyContact?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  @Matches(/^https?:\/\/[^\s]+$/i, {
+    message: 'URL du site invalide',
+  })
+  siteUrl?: string;
 }

@@ -11,6 +11,10 @@ export interface ContactPayload {
 
 export interface ContactTemplateOptions {
   payload: ContactPayload;
+  colors?: {
+    primary?: string;
+    secondary?: string;
+  };
   branding?: {
     logo?: string;
     orgName?: string;
@@ -29,7 +33,7 @@ export interface ContactTemplateOptions {
  * visiteur soumet le formulaire de contact.
  */
 export function contactNotificationTemplate(options: ContactTemplateOptions): string {
-  const { payload, branding } = options;
+  const { payload, branding, colors } = options;
   const receivedAt = (payload.createdAt ?? new Date()).toLocaleString('fr-FR', {
     dateStyle: 'long',
     timeStyle: 'short',
@@ -69,6 +73,7 @@ export function contactNotificationTemplate(options: ContactTemplateOptions): st
     title: `Nouveau message de contact — ${payload.subject}`,
     preheader: `${payload.name} (${payload.email}) a envoyé un message sur le site SEED.`,
     contentHtml,
+    colors,
     branding,
   });
 }
@@ -78,7 +83,7 @@ export function contactNotificationTemplate(options: ContactTemplateOptions): st
  * de soumettre le formulaire de contact.
  */
 export function contactConfirmationTemplate(options: ContactTemplateOptions): string {
-  const { payload, branding } = options;
+  const { payload, branding, colors } = options;
   const recap = [
     renderEmailField('Nom', payload.name),
     renderEmailField('E-mail', payload.email),

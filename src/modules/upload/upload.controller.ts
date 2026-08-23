@@ -7,6 +7,7 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { randomBytes } from 'crypto';
@@ -35,6 +36,8 @@ interface UploadBody {
 
 @Controller('admin/upload')
 export class UploadController {
+  constructor(private readonly configService: ConfigService) {}
+
   @Post()
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_SIZE } }))
   async upload(
@@ -59,9 +62,10 @@ export class UploadController {
       await this.removeStored(body.oldPath);
     }
 
-    const origin = `${req.protocol}://${req.get('host')}`;
+    const publicUrl = this.configService.get<string>('PUBLIC_URL');
+    const origin = publicUrl || `${req.protocol}://${req.get('host')}`;
     return {
-      url: `${origin}/uploads/${name}`,
+      url: `${origin.replace(/\/$/, '')}/uploads/${name}`,
       path: `/uploads/${name}`,
       fileName: undefined,
     };

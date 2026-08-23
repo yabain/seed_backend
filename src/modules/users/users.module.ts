@@ -4,9 +4,11 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { Admin, AdminSchema } from '../auth/schemas/admin.schema';
 import { UserLog, UserLogSchema } from './schemas/user-log.schema';
+import { SiteModule } from '../site/site.module';
 
 @Module({
   imports: [
+    SiteModule,
     MongooseModule.forFeature([
       { name: Admin.name, schema: AdminSchema },
       { name: UserLog.name, schema: UserLogSchema },

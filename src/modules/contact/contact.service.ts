@@ -49,16 +49,20 @@ export class ContactService {
 
     const siteConfig = await this.siteService.getPublicConfig();
     const branding: ContactTemplateOptions['branding'] = {
-      logo: siteConfig.logo,
+      logo: this.siteService.resolveMediaUrl(siteConfig.logo),
       orgName: siteConfig.orgName,
       social: siteConfig.social,
+    };
+    const colors: ContactTemplateOptions['colors'] = {
+      primary: siteConfig.primaryColor,
+      secondary: siteConfig.secondaryColor,
     };
 
     // 1) Notification aux administrateurs (avec récapitulatif complet).
     await this.mailService.send({
       to: recipients,
       subject: `Nouveau message de contact — ${dto.subject}`,
-      html: contactNotificationTemplate({ payload: fromVisitor, branding }),
+      html: contactNotificationTemplate({ payload: fromVisitor, colors, branding }),
       replyTo: dto.email,
     });
 
@@ -66,7 +70,7 @@ export class ContactService {
     await this.mailService.send({
       to: dto.email,
       subject: 'Nous avons bien reçu votre message',
-      html: contactConfirmationTemplate({ payload: fromVisitor, branding }),
+      html: contactConfirmationTemplate({ payload: fromVisitor, colors, branding }),
     });
 
     return message;

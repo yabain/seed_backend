@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SiteConfig, SiteConfigDocument } from './schemas/site-config.schema';
 import { UpdateSiteConfigDto } from './dto/update-site-config.dto';
+import { resolvePublicMediaUrl } from '../../utils/public-media-url.util';
 
 const MEDIA_KEYS: readonly string[] = ['logo', 'favicon', 'ogImage'];
 
@@ -60,7 +62,14 @@ export class SiteService {
   constructor(
     @InjectModel(SiteConfig.name)
     private readonly siteConfigModel: Model<SiteConfigDocument>,
+    private readonly configService: ConfigService,
   ) {}
+
+  resolveMediaUrl(url?: string): string {
+    const base =
+      this.configService.get<string>('PUBLIC_URL') ?? 'http://localhost:3000';
+    return resolvePublicMediaUrl(url, base);
+  }
 
   private async getOrCreate(): Promise<SiteConfigDocument> {
     let config = await this.siteConfigModel.findOne().sort({ createdAt: 1 }).exec();

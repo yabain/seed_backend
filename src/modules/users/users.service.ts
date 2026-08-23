@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Model, isValidObjectId } from 'mongoose';
@@ -17,6 +19,16 @@ import { UserLog, UserLogDocument } from './schemas/user-log.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { MailService } from '../mail/mail.service';
+import { SiteService } from '../site/site.service';
+import { accountCredentialsTemplate } from '../mail/templates/account.templates';
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  user: 'Utilisateur',
+  consultant: 'Consultant',
+  admin: 'Administrateur',
+  superadmin: 'Super administrateur',
+};
 
 export interface UserActor {
   id: string;
@@ -83,10 +95,15 @@ export interface SanitizedAdmin {
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectModel(Admin.name) private readonly adminModel: Model<AdminDocument>,
     @InjectModel(UserLog.name)
     private readonly userLogModel: Model<UserLogDocument>,
+    private readonly mailService: MailService,
+    private readonly siteService: SiteService,
+    private readonly configService: ConfigService,
   ) {}
 
   private sanitize(admin: Record<string, unknown>): SanitizedAdmin {
@@ -316,11 +333,72 @@ export class UsersService {
         action: 'user.created',
         userId: sanitized.id,
         userEmail: sanitized.email,
-        metadata: { role: sanitized.role, isActive: sanitized.isActive },
+        metadata: {
+          role: sanitized.role,
+          isActive: sanitized.isActive,
+          credentialsSent: Boolean(dto.notifyContact),
+        },
       });
     }
 
+    if (dto.notifyContact && dto.isActive !== false) {
+      await this.sendCredentialsEmail(
+        sanitized.name,
+        sanitized.email,
+        dto.password,
+        (dto.role ?? 'user') as UserRole,
+        dto.siteUrl,
+      );
+    }
+
     return sanitized;
+  }
+
+  private async sendCredentialsEmail(
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    siteUrl?: string,
+  ): Promise<void> {
+    try {
+      const siteConfig = await this.siteService.getPublicConfig();
+      const frontUrl =
+        (siteUrl ?? '').trim().replace(/\/$/, '') ||
+        this.configService.get<string>('FRONT_URL') ||
+        'http://localhost:4200';
+      const sent = await this.mailService.send({
+        to: email,
+        subject: `Votre compte ${siteConfig.orgName || 'SEED'} — identifiants de connexion`,
+        html: accountCredentialsTemplate({
+          name,
+          email,
+          password,
+          roleLabel: ROLE_LABELS[role] ?? role,
+          loginUrl: `${frontUrl}/admin/login`,
+          siteLink: frontUrl,
+          colors: {
+            primary: siteConfig.primaryColor,
+            secondary: siteConfig.secondaryColor,
+          },
+          branding: {
+            logo: this.siteService.resolveMediaUrl(siteConfig.logo),
+            orgName: siteConfig.orgName,
+            social: siteConfig.social,
+          },
+        }),
+      });
+      if (!sent) {
+        this.logger.warn(
+          `Identifiants non envoyés à ${email} : SMTP non configuré.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Échec de l'envoi des identifiants à ${email} :`,
+        error,
+      );
+    }
   }
 
   async update(id: string, dto: UpdateUserDto, actor?: UserActor) {
