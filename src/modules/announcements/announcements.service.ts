@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import * as path from 'path';
 import {
   Announcement,
   AnnouncementDelivery,
@@ -25,6 +24,7 @@ import { UpdateAnnouncementSettingsDto } from './dto/update-settings.dto';
 import { MailService } from '../mail/mail.service';
 import { Admin } from '../auth/schemas/admin.schema';
 import { Prospect } from '../prospects/prospect.schema';
+import { resolveUploadDir } from '../../common/utils/upload-dir.util';
 
 const LOCK_KEY = 'announcements-wave-processor';
 const LOCK_TTL_MS = 30_000;
@@ -451,7 +451,9 @@ export class AnnouncementsService {
         html,
         attachments: (doc.attachments ?? []).map((a) => ({
           filename: a.fileName,
-          path: path.join(process.cwd(), a.path.replace(/^\//, '')),
+          path: resolveUploadDir(
+            a.path.replace(/^\/uploads\//, '').replace(/^\//, ''),
+          ),
         })),
       });
 

@@ -17,12 +17,12 @@ import { promises as fs } from 'fs';
 import { randomBytes } from 'crypto';
 import { basename, extname, join } from 'path';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { resolveUploadDir } from '../../common/utils/upload-dir.util';
 import { AnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 import { UpdateAnnouncementSettingsDto } from './dto/update-settings.dto';
 
-const ANNOUNCEMENTS_UPLOAD_DIR = join(process.cwd(), 'uploads', 'announcements');
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 
 @Roles('admin', 'superadmin')
@@ -89,8 +89,11 @@ export class AnnouncementsController {
     const stem = basename(safeName, extension).slice(0, 80) || 'fichier';
     const fileName = `${Date.now()}-${randomBytes(4).toString('hex')}-${stem.trim().replace(/\s+/g, '-')}${extension}`;
 
-    await fs.mkdir(ANNOUNCEMENTS_UPLOAD_DIR, { recursive: true });
-    await fs.writeFile(join(ANNOUNCEMENTS_UPLOAD_DIR, fileName), file.buffer);
+    await fs.mkdir(resolveUploadDir('announcements'), { recursive: true });
+    await fs.writeFile(
+      join(resolveUploadDir('announcements'), fileName),
+      file.buffer,
+    );
 
     const publicUrl = this.configService.get<string>('PUBLIC_URL');
     const relativePath = `/uploads/announcements/${fileName}`;

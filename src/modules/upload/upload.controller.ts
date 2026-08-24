@@ -14,8 +14,8 @@ import type { Request } from 'express';
 import { randomBytes } from 'crypto';
 import { promises as fs } from 'fs';
 import { basename, join } from 'path';
+import { resolveUploadDir } from '../../common/utils/upload-dir.util';
 
-const UPLOAD_DIR = join(process.cwd(), 'uploads');
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const MIME_EXT: Record<string, string> = {
@@ -57,8 +57,9 @@ export class UploadController {
     const extension = MIME_EXT[file.mimetype] ?? 'webp';
     const name = `${Date.now()}-${randomBytes(4).toString('hex')}.${extension}`;
 
-    await fs.mkdir(UPLOAD_DIR, { recursive: true });
-    await fs.writeFile(join(UPLOAD_DIR, name), file.buffer);
+    const uploadDir = resolveUploadDir();
+    await fs.mkdir(uploadDir, { recursive: true });
+    await fs.writeFile(join(uploadDir, name), file.buffer);
 
     if (body.oldPath) {
       await this.removeStored(body.oldPath);
@@ -81,8 +82,8 @@ export class UploadController {
     if (!name || !/^[a-z0-9._-]+$/i.test(name)) {
       return;
     }
-    const target = join(UPLOAD_DIR, name);
-    if (!target.startsWith(UPLOAD_DIR)) {
+    const target = join(resolveUploadDir(), name);
+    if (!target.startsWith(resolveUploadDir())) {
       return;
     }
     try {
