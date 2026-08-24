@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -25,6 +26,7 @@ import { CryptModule } from './modules/crypt/crypt.module';
 import { SmtpModule } from './modules/smtp/smtp.module';
 import { EmailModule } from './modules/email/email.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -37,6 +39,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     }),
 
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ScheduleModule.forRoot(),
     CryptModule,
     SmtpModule,
     MailModule,
@@ -56,6 +59,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     AboutModule,
     UploadModule,
     UsersModule,
+    AnnouncementsModule,
     SeedModule,
   ],
   controllers: [AppController],

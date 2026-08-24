@@ -3,11 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { SmtpService } from '../smtp/smtp.service';
 
+export interface SendMailAttachment {
+  filename: string;
+  path: string;
+}
+
 export interface SendMailOptions {
   to: string | string[];
   subject: string;
   html: string;
   replyTo?: string;
+  attachments?: SendMailAttachment[];
 }
 
 @Injectable()
@@ -56,6 +62,7 @@ export class MailService {
         subject: options.subject,
         html: options.html,
         replyTo: options.replyTo,
+        attachments: options.attachments,
       });
       return true;
     } catch (error) {
