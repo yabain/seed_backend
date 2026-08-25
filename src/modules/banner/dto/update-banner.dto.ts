@@ -33,4 +33,19 @@ export class UpdateBannerDto {
   @ValidateNested({ each: true })
   @Type(() => BannerSlideDto)
   slides: BannerSlideDto[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  fixedText?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(200, { each: true })
+  rotatingPhrases?: string[];
+
+  @IsOptional()
+  @IsString()
+  rotatingImage?: string;
 }

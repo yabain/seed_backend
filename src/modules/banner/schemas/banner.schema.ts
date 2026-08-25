@@ -35,6 +35,15 @@ const defaultSlides = (): BannerSlide[] =>
 export class Banner {
   @Prop({ type: [BannerSlideSchema], default: defaultSlides })
   slides: BannerSlide[];
+
+  @Prop({ default: '' })
+  fixedText: string;
+
+  @Prop({ type: [String], default: [] })
+  rotatingPhrases: string[];
+
+  @Prop({ default: '' })
+  rotatingImage: string;
 }
 
 export const BannerSchema = SchemaFactory.createForClass(Banner);

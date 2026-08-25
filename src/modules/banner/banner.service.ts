@@ -32,6 +32,9 @@ export class BannerService {
       subtitle: slide.subtitle ?? '',
       image: slide.image ?? '',
     }));
+    banner.fixedText = dto.fixedText ?? '';
+    banner.rotatingPhrases = (dto.rotatingPhrases ?? []).slice(0, 10);
+    banner.rotatingImage = dto.rotatingImage ?? '';
     await banner.save();
     return banner.toObject();
   }
