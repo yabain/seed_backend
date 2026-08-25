@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -7,10 +8,12 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 import {
   ANNOUNCEMENT_GROUPS,
 } from '../schemas/announcement.schema';
+import { AttachmentDto } from './attachment.dto';
 
 export class CreateAnnouncementDto {
   @IsString()
@@ -29,12 +32,10 @@ export class CreateAnnouncementDto {
   customRecipients?: string[];
 
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AttachmentDto)
   @IsOptional()
-  attachments?: Array<{
-    fileName: string;
-    path: string;
-    size: number;
-  }>;
+  attachments?: AttachmentDto[];
 
   @IsBoolean()
   @IsOptional()

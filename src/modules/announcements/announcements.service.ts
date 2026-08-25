@@ -25,6 +25,7 @@ import { MailService } from '../mail/mail.service';
 import { Admin } from '../auth/schemas/admin.schema';
 import { Prospect } from '../prospects/prospect.schema';
 import { resolveUploadDir } from '../../common/utils/upload-dir.util';
+import { deleteUploadFile } from '../../common/utils/upload-file.util';
 
 const LOCK_KEY = 'announcements-wave-processor';
 const LOCK_TTL_MS = 30_000;
@@ -172,6 +173,9 @@ export class AnnouncementsService {
     }
 
     await this.announcementModel.findByIdAndDelete(id).exec();
+    for (const attachment of doc.attachments ?? []) {
+      await deleteUploadFile(attachment.path);
+    }
     return { deleted: true };
   }
 

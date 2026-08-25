@@ -74,6 +74,7 @@ export class SiteConfig {
       resources: { type: Boolean, default: true },
       programs: { type: Boolean, default: true },
       partners: { type: Boolean, default: true },
+      events: { type: Boolean, default: true },
     },
     default: {},
   })
@@ -82,6 +83,7 @@ export class SiteConfig {
     resources: boolean;
     programs: boolean;
     partners: boolean;
+    events: boolean;
   };
 }
 

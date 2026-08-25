@@ -13,8 +13,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { randomBytes } from 'crypto';
 import { promises as fs } from 'fs';
-import { basename, join } from 'path';
+import { join } from 'path';
 import { resolveUploadDir } from '../../common/utils/upload-dir.util';
+import { deleteUploadFile } from '../../common/utils/upload-file.util';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
@@ -62,7 +63,7 @@ export class UploadController {
     await fs.writeFile(join(uploadDir, name), file.buffer);
 
     if (body.oldPath) {
-      await this.removeStored(body.oldPath);
+      await deleteUploadFile(body.oldPath);
     }
 
     const publicUrl = this.configService.get<string>('PUBLIC_URL');
@@ -72,24 +73,5 @@ export class UploadController {
       path: `/uploads/${name}`,
       fileName: undefined,
     };
-  }
-
-  private async removeStored(pathLike: string): Promise<void> {
-    if (!pathLike || typeof pathLike !== 'string') {
-      return;
-    }
-    const name = basename(pathLike);
-    if (!name || !/^[a-z0-9._-]+$/i.test(name)) {
-      return;
-    }
-    const target = join(resolveUploadDir(), name);
-    if (!target.startsWith(resolveUploadDir())) {
-      return;
-    }
-    try {
-      await fs.unlink(target);
-    } catch {
-      // Fichier déjà absent — ignoré
-    }
   }
 }

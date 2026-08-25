@@ -27,6 +27,7 @@ import { SmtpModule } from './modules/smtp/smtp.module';
 import { EmailModule } from './modules/email/email.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
+import { EventsModule } from './modules/events/events.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -60,6 +61,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     UploadModule,
     UsersModule,
     AnnouncementsModule,
+    EventsModule,
     SeedModule,
   ],
   controllers: [AppController],

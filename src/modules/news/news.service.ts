@@ -8,6 +8,7 @@ import { Model, isValidObjectId } from 'mongoose';
 import { News, NewsDocument } from './schemas/news.schema';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
+import { deleteUploadFile } from '../../common/utils/upload-file.util';
 
 function slugify(input: string): string {
   return input
@@ -199,6 +200,7 @@ export class NewsService {
     if (!result) {
       throw new NotFoundException('Actualité introuvable');
     }
+    await deleteUploadFile(result.image);
     return { deleted: true };
   }
 }

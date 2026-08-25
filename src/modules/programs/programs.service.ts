@@ -4,6 +4,7 @@ import { Model, isValidObjectId } from 'mongoose';
 import { Program, ProgramDocument } from './schemas/program.schema';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
+import { deleteUploadFile } from '../../common/utils/upload-file.util';
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -101,6 +102,8 @@ export class ProgramsService {
     if (!result) {
       throw new NotFoundException('Programme introuvable');
     }
+    await deleteUploadFile(result.visual);
+    await deleteUploadFile(result.icon);
     return { deleted: true };
   }
 }
