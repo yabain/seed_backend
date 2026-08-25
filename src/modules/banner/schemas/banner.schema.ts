@@ -44,6 +44,9 @@ export class Banner {
 
   @Prop({ default: '' })
   rotatingImage: string;
+
+  @Prop({ default: true })
+  rotatingVisible: boolean;
 }
 
 export const BannerSchema = SchemaFactory.createForClass(Banner);

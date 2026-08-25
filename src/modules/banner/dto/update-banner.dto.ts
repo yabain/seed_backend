@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsOptional,
   IsString,
   MaxLength,
@@ -48,4 +49,8 @@ export class UpdateBannerDto {
   @IsOptional()
   @IsString()
   rotatingImage?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  rotatingVisible?: boolean;
 }

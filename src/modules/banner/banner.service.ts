@@ -35,6 +35,9 @@ export class BannerService {
     banner.fixedText = dto.fixedText ?? '';
     banner.rotatingPhrases = (dto.rotatingPhrases ?? []).slice(0, 10);
     banner.rotatingImage = dto.rotatingImage ?? '';
+    if (dto.rotatingVisible !== undefined) {
+      banner.rotatingVisible = dto.rotatingVisible;
+    }
     await banner.save();
     return banner.toObject();
   }
