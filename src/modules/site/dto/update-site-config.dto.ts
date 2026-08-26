@@ -47,6 +47,10 @@ export class SegmentsDto {
   @IsOptional()
   @IsBoolean()
   partners?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  events?: boolean;
 }
 
 export class UpdateSiteConfigDto {

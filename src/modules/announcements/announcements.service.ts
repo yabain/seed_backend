@@ -397,9 +397,14 @@ export class AnnouncementsService {
 
   private async processWaves(announcementId: string): Promise<void> {
     for (let wave = 0; wave < 5000; wave++) {
-      const doc = await this.announcementModel
-        .findById(announcementId)
-        .exec();
+      let doc: AnnouncementDocument | null;
+      try {
+        doc = await this.announcementModel
+          .findById(announcementId)
+          .exec();
+      } catch {
+        return;
+      }
       if (!doc || doc.status !== 'sending') return;
 
       const pending = doc.deliveries.filter((d) => d.status === 'pending');
@@ -411,23 +416,30 @@ export class AnnouncementsService {
         doc.status = failedCount === doc.deliveries.length ? 'failed' : 'sent';
         doc.sentAt = new Date();
         doc.lastRunAt = new Date();
-        await doc.save();
+        try {
+          await doc.save();
+        } catch {
+          return;
+        }
         return;
       }
 
-      const wave = pending.slice(0, WAVE_SIZE);
+      const batch = pending.slice(0, WAVE_SIZE);
       await Promise.all(
-        wave.map((delivery) =>
-          this.sendSingle(doc, delivery).catch(() => undefined),
+        batch.map((delivery) =>
+          this.sendSingle(doc!, delivery).catch(() => undefined),
         ),
       );
 
-      doc.markModified('deliveries');
-      doc.lastRunAt = new Date();
-      await doc.save();
+      try {
+        doc.markModified('deliveries');
+        doc.lastRunAt = new Date();
+        await doc.save();
+      } catch {
+        return;
+      }
 
       if (pending.length > WAVE_SIZE) {
-        // Pause anti-spam entre les vagues.
         await new Promise((resolve) => setTimeout(resolve, 2_000));
       }
     }

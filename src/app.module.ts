@@ -29,6 +29,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { EventsModule } from './modules/events/events.module';
 import { FeaturesSectionModule } from './modules/features-section/features-section.module';
+import { CountriesSectionModule } from './modules/countries-section/countries-section.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -64,6 +65,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     AnnouncementsModule,
     EventsModule,
     FeaturesSectionModule,
+    CountriesSectionModule,
     SeedModule,
   ],
   controllers: [AppController],
