@@ -121,6 +121,9 @@ export class Announcement {
 
   @Prop({ type: [AnnouncementDelivery], default: [] })
   deliveries!: AnnouncementDelivery[];
+
+  @Prop({ default: false })
+  processing!: boolean;
 }
 
 export const AnnouncementSchema = SchemaFactory.createForClass(Announcement);

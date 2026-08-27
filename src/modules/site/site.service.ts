@@ -55,6 +55,12 @@ const DEFAULT_CONFIG = {
     programs: true,
     partners: true,
   },
+  landingSections: {
+    events: { eyebrow: 'Événements', title: 'Nos rendez-vous', description: 'Retrouvez nos événements à venir et passés.' },
+    news: { eyebrow: 'Actualités', title: 'Nos dernières nouvelles', description: 'Suivez notre actualité et nos réalisations.' },
+    programs: { eyebrow: 'Nos actions', title: 'Programmes et projets actifs', description: 'Des initiatives concrètes portées avec nos partenaires.' },
+    partners: { eyebrow: '', title: '', description: '' },
+  },
 };
 
 @Injectable()
@@ -121,6 +127,13 @@ export class SiteService {
         ...dto.segments,
       });
     }
+    if (dto.landingSections) {
+      config.set('landingSections', {
+        ...DEFAULT_CONFIG.landingSections,
+        ...(config.landingSections ?? {}),
+        ...dto.landingSections,
+      });
+    }
     await config.save();
     return config.toObject();
   }
@@ -155,6 +168,11 @@ export class SiteService {
       return true;
     }
     if (dto.segments && Object.values(dto.segments).some((value) => typeof value === 'boolean')) {
+      return true;
+    }
+    if (dto.landingSections && Object.values(dto.landingSections).some((section) =>
+      section && Object.values(section).some((value) => typeof value === 'string'),
+    )) {
       return true;
     }
     return false;

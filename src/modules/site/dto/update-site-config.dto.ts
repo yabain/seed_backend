@@ -1,4 +1,5 @@
 import {
+  ValidateNested,
   IsBoolean,
   IsEmail,
   IsOptional,
@@ -6,6 +7,7 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 const HEX_COLOR_REGEX = /^(#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|)$/;
 
@@ -51,6 +53,19 @@ export class SegmentsDto {
   @IsOptional()
   @IsBoolean()
   events?: boolean;
+}
+
+export class LandingSectionTextDto {
+  @IsOptional() @IsString() @MaxLength(100) eyebrow?: string;
+  @IsOptional() @IsString() @MaxLength(200) title?: string;
+  @IsOptional() @IsString() @MaxLength(500) description?: string;
+}
+
+export class LandingSectionsDto {
+  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) events?: LandingSectionTextDto;
+  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) news?: LandingSectionTextDto;
+  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) programs?: LandingSectionTextDto;
+  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) partners?: LandingSectionTextDto;
 }
 
 export class UpdateSiteConfigDto {
@@ -126,4 +141,9 @@ export class UpdateSiteConfigDto {
 
   @IsOptional()
   segments?: SegmentsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionsDto)
+  landingSections?: LandingSectionsDto;
 }

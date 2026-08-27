@@ -85,6 +85,17 @@ export class SiteConfig {
     partners: boolean;
     events: boolean;
   };
+
+  @Prop({
+    type: {
+      events: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
+      news: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
+      programs: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
+      partners: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
+    },
+    default: {},
+  })
+  landingSections: Record<string, { eyebrow: string; title: string; description: string }>;
 }
 
 export const SiteConfigSchema = SchemaFactory.createForClass(SiteConfig);

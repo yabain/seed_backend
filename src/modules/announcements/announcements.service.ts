@@ -396,52 +396,73 @@ export class AnnouncementsService {
   }
 
   private async processWaves(announcementId: string): Promise<void> {
-    for (let wave = 0; wave < 5000; wave++) {
-      let doc: AnnouncementDocument | null;
-      try {
-        doc = await this.announcementModel
-          .findById(announcementId)
-          .exec();
-      } catch {
-        return;
-      }
-      if (!doc || doc.status !== 'sending') return;
+    const claimed = await this.announcementModel
+      .findOneAndUpdate(
+        { _id: announcementId, processing: { $ne: true } },
+        { $set: { processing: true } },
+        { new: true },
+      )
+      .exec();
 
-      const pending = doc.deliveries.filter((d) => d.status === 'pending');
-      if (!pending.length) {
-        const failedCount = doc.deliveries.filter(
-          (d) => d.status === 'failed',
-        ).length;
+    if (!claimed) return;
 
-        doc.status = failedCount === doc.deliveries.length ? 'failed' : 'sent';
-        doc.sentAt = new Date();
-        doc.lastRunAt = new Date();
+    try {
+      for (let wave = 0; wave < 5000; wave++) {
+        let doc: AnnouncementDocument | null;
         try {
+          doc = await this.announcementModel
+            .findById(announcementId)
+            .exec();
+        } catch {
+          return;
+        }
+        if (!doc || doc.status !== 'sending') return;
+
+        const pending = doc.deliveries.filter((d) => d.status === 'pending');
+        if (!pending.length) {
+          const failedCount = doc.deliveries.filter(
+            (d) => d.status === 'failed',
+          ).length;
+
+          doc.status = failedCount === doc.deliveries.length ? 'failed' : 'sent';
+          doc.sentAt = new Date();
+          doc.lastRunAt = new Date();
+          doc.processing = false;
+          try {
+            await doc.save();
+          } catch {
+            return;
+          }
+          return;
+        }
+
+        const batch = pending.slice(0, WAVE_SIZE);
+        await Promise.all(
+          batch.map((delivery) =>
+            this.sendSingle(doc!, delivery).catch(() => undefined),
+          ),
+        );
+
+        try {
+          doc.markModified('deliveries');
+          doc.lastRunAt = new Date();
+          doc.processing = false;
           await doc.save();
         } catch {
           return;
         }
-        return;
-      }
 
-      const batch = pending.slice(0, WAVE_SIZE);
-      await Promise.all(
-        batch.map((delivery) =>
-          this.sendSingle(doc!, delivery).catch(() => undefined),
-        ),
-      );
-
-      try {
-        doc.markModified('deliveries');
-        doc.lastRunAt = new Date();
-        await doc.save();
-      } catch {
-        return;
+        if (pending.length > WAVE_SIZE) {
+          await new Promise((resolve) => setTimeout(resolve, 2_000));
+        }
       }
-
-      if (pending.length > WAVE_SIZE) {
-        await new Promise((resolve) => setTimeout(resolve, 2_000));
-      }
+    } finally {
+      await this.announcementModel
+        .updateOne(
+          { _id: announcementId },
+          { $set: { processing: false } },
+        )
+        .exec();
     }
   }
 
