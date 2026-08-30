@@ -29,6 +29,11 @@ export class BannerSlideDto {
   image?: string;
 }
 
+export class BannerFigureDto {
+  @IsString() @MaxLength(30) value: string;
+  @IsString() @MaxLength(100) label: string;
+}
+
 export class UpdateBannerDto {
   @IsArray()
   @ValidateNested({ each: true })
@@ -53,4 +58,10 @@ export class UpdateBannerDto {
   @IsOptional()
   @IsBoolean()
   rotatingVisible?: boolean;
+
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => BannerFigureDto)
+  figures?: BannerFigureDto[];
+
+  @IsOptional() @IsString()
+  authBackgroundImage?: string;
 }

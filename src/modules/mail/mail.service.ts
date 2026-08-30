@@ -45,7 +45,7 @@ export class MailService {
   private fromAddress(): string {
     return (
       this.configService.get<string>('SMTP_FROM') ??
-      `SEED <${this.configService.get<string>('SMTP_USER') ?? 'no-reply@seed.org'}>`
+      `Organisation <${this.configService.get<string>('SMTP_USER') ?? 'no-reply@example.org'}>`
     );
   }
 

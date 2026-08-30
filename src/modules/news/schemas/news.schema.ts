@@ -25,7 +25,7 @@ export class News {
   @Prop({ default: '' })
   image: string;
 
-  @Prop({ default: 'SEED' })
+  @Prop({ default: 'Organisation' })
   author: string;
 
   @Prop({ type: [String], default: [] })

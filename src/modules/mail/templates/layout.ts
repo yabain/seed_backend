@@ -1,5 +1,5 @@
 /**
- * Gabarit HTML commun aux e-mails SEED (en-tête, police, pied de page).
+ * Gabarit HTML commun aux e-mails de l’organisation (en-tête, police, pied de page).
  */
 
 const DEFAULT_PRIMARY = '#0bcc9c';
@@ -49,7 +49,7 @@ export function renderEmailLayout(options: {
   const secondary = normalizeHex(colors?.secondary, DEFAULT_SECONDARY);
   const year = new Date().getFullYear();
   const logo = options.branding?.logo?.trim();
-  const orgName = escapeHtml(options.branding?.orgName?.trim() ?? 'SEED');
+  const orgName = escapeHtml(options.branding?.orgName?.trim() ?? 'Organisation');
   const logoHtml = logo
     ? `<img src="${escapeHtml(logo)}" alt="${orgName}" style="display:inline-block;max-height:38px;max-width:160px;height:auto;vertical-align:middle;margin-right:10px;" />`
     : `<span style="display:inline-block;width:38px;height:38px;line-height:38px;text-align:center;background:${primary};color:#ffffff;border-radius:10px;font-size:20px;font-weight:bold;margin-right:10px;vertical-align:middle;">${orgName.charAt(0)}</span>`;

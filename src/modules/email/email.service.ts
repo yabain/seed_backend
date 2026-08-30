@@ -71,7 +71,7 @@ export class EmailService {
     const from =
       this.configService.get<string>('SMTP_FROM') ||
       this.configService.get<string>('SMTP_USER') ||
-      'no-reply@seed.org';
+      'no-reply@example.org';
 
     try {
       await transporter.sendMail({
@@ -112,7 +112,7 @@ export class EmailService {
     message: string,
   ): Promise<boolean> {
     const html = `
-      <p>Ceci est un e-mail de test envoyé depuis la plateforme <strong>SEED</strong>.</p>
+      <p>Ceci est un e-mail de test envoyé depuis la plateforme.</p>
       <p><strong>Sujet :</strong> ${subject ?? ''}</p>
       <p><strong>Message :</strong></p>
       <p>${(message ?? '').replace(/\n/g, '<br/>')}</p>

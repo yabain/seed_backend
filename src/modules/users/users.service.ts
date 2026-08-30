@@ -369,7 +369,7 @@ export class UsersService {
         'http://localhost:4200';
       const sent = await this.mailService.send({
         to: email,
-        subject: `Votre compte ${siteConfig.orgName || 'SEED'} — identifiants de connexion`,
+        subject: `Votre compte ${siteConfig.orgName || 'Organisation'} — identifiants de connexion`,
         html: accountCredentialsTemplate({
           name,
           email,
@@ -382,9 +382,15 @@ export class UsersService {
             secondary: siteConfig.secondaryColor,
           },
           branding: {
-            logo: this.siteService.resolveMediaUrl(siteConfig.logo),
+            logo: this.configService.get<string>('EMAIL_LOGO_URL')?.trim() || '',
             orgName: siteConfig.orgName,
-            social: siteConfig.social,
+            social: {
+              facebook: this.configService.get<string>('EMAIL_SOCIAL_FACEBOOK')?.trim() || '',
+              instagram: this.configService.get<string>('EMAIL_SOCIAL_INSTAGRAM')?.trim() || '',
+              linkedin: this.configService.get<string>('EMAIL_SOCIAL_LINKEDIN')?.trim() || '',
+              twitter: this.configService.get<string>('EMAIL_SOCIAL_TWITTER')?.trim() || '',
+              youtube: this.configService.get<string>('EMAIL_SOCIAL_YOUTUBE')?.trim() || '',
+            },
           },
         }),
       });

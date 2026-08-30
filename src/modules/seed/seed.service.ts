@@ -54,7 +54,7 @@ export class SeedService implements OnModuleInit {
       this.configService.get<string>('ADMIN_EMAIL') ?? 'flambel55@gmail.com';
     const password =
       this.configService.get<string>('ADMIN_PASSWORD') ?? 'admin1234';
-    const name = 'Administrateur SEED';
+    const name = 'Administrateur';
 
     const hashed = await bcrypt.hash(password, 10);
     await this.adminModel.create({
@@ -75,24 +75,18 @@ export class SeedService implements OnModuleInit {
       return;
     }
     await this.siteConfigModel.create({
-      orgName: 'SEED',
-      tagline: "Cultivons l'avenir ensemble",
+      orgName: 'Organisation',
+      tagline: '',
       description:
-        "SEED (Solution pour l'Éducation, l'Environnement et le Développement) est une organisation qui œuvre pour un avenir durable à travers des programmes éducatifs, environnementaux et sociaux, développée par Yaba-In SARL.",
+        '',
       logo: '',
       heroTitle: 'Construisons un avenir durable et solidaire',
       heroSubtitle:
-        "SEED s'engage pour l'éducation, l'environnement et le développement communautaire. Rejoignez-nous pour construire un impact durable.",
-      address: 'Abidjan, Côte d’Ivoire',
-      phone: '+225 07 00 00 00 00',
-      email: 'contact@seed.org',
-      social: {
-        facebook: 'https://facebook.com/seed',
-        instagram: 'https://instagram.com/seed',
-        linkedin: 'https://linkedin.com/company/seed',
-        twitter: 'https://twitter.com/seed',
-        youtube: 'https://youtube.com/@seed',
-      },
+        '',
+      address: '',
+      phone: '',
+      email: '',
+      social: {},
     });
     this.logger.log('✅ Configuration du site créée');
   }
@@ -106,7 +100,7 @@ export class SeedService implements OnModuleInit {
     const items: Array<Partial<News>> = [
       {
         title:
-          'SEED lance son programme d’éducation environnementale dans les écoles',
+          'Lancement d’un programme d’éducation environnementale dans les écoles',
         excerpt:
           'Un programme novateur pour sensibiliser les élèves dès le plus jeune âge à la protection de l’environnement.',
         content:
@@ -133,7 +127,7 @@ export class SeedService implements OnModuleInit {
         excerpt:
           'Un partenariat de 3 ans pour planter 10 000 arbres dans la région.',
         content:
-          "SEED est fier d'annoncer la signature d'un partenariat ambitieux visant la plantation de 10 000 arbres sur trois ans. Cette initiative s'inscrit dans notre mission de lutte contre la déforestation et de restauration des écosystèmes locaux.",
+          "Signature d'un partenariat ambitieux visant la plantation de 10 000 arbres sur trois ans. Cette initiative s'inscrit dans une mission de lutte contre la déforestation et de restauration des écosystèmes locaux.",
         image: '',
         tags: ['partenariat', 'environnement'],
         status: 'published',
@@ -154,7 +148,7 @@ export class SeedService implements OnModuleInit {
       {
         title: 'Rapport annuel 2024',
         category: 'Rapports',
-        description: 'Le rapport d’activité complet de SEED pour l’année 2024.',
+        description: 'Le rapport d’activité complet pour l’année 2024.',
         fileUrl: '',
         fileName: 'rapport-annuel-2024.pdf',
         fileType: 'application/pdf',
@@ -162,12 +156,12 @@ export class SeedService implements OnModuleInit {
         isPublished: true,
       },
       {
-        title: 'Présentation institutionnelle de SEED',
+        title: 'Présentation institutionnelle',
         category: 'Brochures',
         description:
-          'Découvrez SEED, sa vision et ses domaines d’intervention.',
+          'Découvrez notre vision et nos domaines d’intervention.',
         fileUrl: '',
-        fileName: 'presentation-seed.pdf',
+        fileName: 'presentation-institutionnelle.pdf',
         fileType: 'application/pdf',
         fileSize: 0,
         isPublished: true,
@@ -220,7 +214,7 @@ export class SeedService implements OnModuleInit {
         excerpt:
           'Protection de l’environnement et actions climatiques concrètes.',
         description:
-          'Rébiosement, gestion des déchets, énergies propres : SEED accompagne les communautés vers des pratiques durables face aux défis climatiques.',
+          'Reboisement, gestion des déchets, énergies propres : nous accompagnons les communautés vers des pratiques durables face aux défis climatiques.',
         icon: 'environment',
         visual: '',
         order: 2,
@@ -262,7 +256,7 @@ export class SeedService implements OnModuleInit {
         logo: '',
         website: 'https://yaba-in.com',
         description:
-          'Entreprise technologique et partenaire technique de SEEDS.',
+          'Entreprise technologique et partenaire technique.',
         order: 1,
         isActive: true,
       },

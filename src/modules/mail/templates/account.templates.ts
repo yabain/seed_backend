@@ -44,7 +44,7 @@ export function accountCredentialsTemplate(
     colors,
     branding,
   } = options;
-  const orgName = branding?.orgName?.trim() || 'SEED';
+  const orgName = branding?.orgName?.trim() || 'Organisation';
   const primary = mixHexWithWhite(colors?.primary ?? '', 0);
   const primarySoft = mixHexWithWhite(colors?.primary ?? '', 0.25);
 

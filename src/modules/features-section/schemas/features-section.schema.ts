@@ -49,6 +49,9 @@ export class FeaturesSection {
   @Prop({ default: '' })
   description: string;
 
+  @Prop({ default: '' })
+  image: string;
+
   @Prop({ type: [FeatureItemSchema], default: defaultFeatures })
   features: FeatureItem[];
 

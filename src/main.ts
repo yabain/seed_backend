@@ -34,7 +34,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(
-    `🚀 SEED API démarrée sur http://localhost:${process.env.PORT ?? 3000}`,
+    `🚀 API démarrée sur http://localhost:${process.env.PORT ?? 3000}`,
   );
 }
 void bootstrap();

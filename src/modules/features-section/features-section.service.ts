@@ -29,6 +29,7 @@ export class FeaturesSectionService {
     if (dto.eyebrow !== undefined) section.eyebrow = dto.eyebrow;
     if (dto.title !== undefined) section.title = dto.title;
     if (dto.description !== undefined) section.description = dto.description;
+    if (dto.image !== undefined) section.image = dto.image;
     if (dto.visible !== undefined) section.visible = dto.visible;
     if (dto.features !== undefined) {
       section.features = dto.features.map((f): FeatureItem => ({

@@ -20,6 +20,14 @@ export class BannerSlide {
 
 export const BannerSlideSchema = SchemaFactory.createForClass(BannerSlide);
 
+@Schema({ _id: false })
+export class BannerFigure {
+  @Prop({ default: '' }) value: string;
+  @Prop({ default: '' }) label: string;
+}
+
+export const BannerFigureSchema = SchemaFactory.createForClass(BannerFigure);
+
 const defaultSlides = (): BannerSlide[] =>
   Array.from({ length: 3 }, () => ({
     eyebrow: '',
@@ -47,6 +55,12 @@ export class Banner {
 
   @Prop({ default: true })
   rotatingVisible: boolean;
+
+  @Prop({ type: [BannerFigureSchema], default: [] })
+  figures: BannerFigure[];
+
+  @Prop({ default: '' })
+  authBackgroundImage: string;
 }
 
 export const BannerSchema = SchemaFactory.createForClass(Banner);

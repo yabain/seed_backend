@@ -28,7 +28,7 @@ const SCALAR_KEYS = [
 ] as const;
 
 const DEFAULT_CONFIG = {
-  orgName: 'SEED',
+  orgName: 'Organisation',
   tagline: '',
   description: '',
   logo: '',

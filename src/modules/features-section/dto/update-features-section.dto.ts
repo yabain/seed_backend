@@ -41,6 +41,10 @@ export class UpdateFeaturesSectionDto {
   description?: string;
 
   @IsOptional()
+  @IsString()
+  image?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FeatureItemDto)

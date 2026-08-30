@@ -40,6 +40,8 @@ const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly CODE_TTL_MS = 10 * 60 * 1000;
+  private readonly TWO_FACTOR_DEDUP_MS = 30 * 1000;
+  private readonly twoFactorChallengeLocks = new Map<string, Promise<boolean>>();
 
   constructor(
     @InjectModel(Admin.name) private readonly adminModel: Model<AdminDocument>,
@@ -53,6 +55,20 @@ export class AuthService {
     private readonly auditLogService: AuditLogService,
     private readonly siteService: SiteService,
   ) {}
+
+  private emailBranding(orgName?: string) {
+    return {
+      logo: this.configService.get<string>('EMAIL_LOGO_URL')?.trim() || '',
+      orgName: orgName?.trim() || 'Organisation',
+      social: {
+        facebook: this.configService.get<string>('EMAIL_SOCIAL_FACEBOOK')?.trim() || '',
+        instagram: this.configService.get<string>('EMAIL_SOCIAL_INSTAGRAM')?.trim() || '',
+        linkedin: this.configService.get<string>('EMAIL_SOCIAL_LINKEDIN')?.trim() || '',
+        twitter: this.configService.get<string>('EMAIL_SOCIAL_TWITTER')?.trim() || '',
+        youtube: this.configService.get<string>('EMAIL_SOCIAL_YOUTUBE')?.trim() || '',
+      },
+    };
+  }
 
   async validateAdmin(
     email: string,
@@ -99,19 +115,16 @@ export class AuthService {
     return code;
   }
 
-  private async sendCodeEmail(to: string, code: string): Promise<void> {
+  private async sendCodeEmail(to: string, code: string): Promise<boolean> {
     const siteConfig = await this.siteService.getPublicConfig();
-    const branding = {
-      logo: siteConfig.logo,
-      orgName: siteConfig.orgName,
-      social: siteConfig.social,
-    };
+    const orgName = siteConfig.orgName?.trim() || 'Organisation';
+    const branding = this.emailBranding(siteConfig.orgName);
 
     const html = renderEmailLayout({
       title: 'Votre code de connexion',
-      preheader: `Votre code de connexion SEED est ${code}. Il expire dans 10 minutes.`,
+      preheader: `Votre code de connexion ${orgName} est ${code}. Il expire dans 10 minutes.`,
       contentHtml: `
-        <p style="margin:0 0 16px;">Voici votre code de connexion &agrave; la plateforme <strong>SEED</strong> :</p>
+        <p style="margin:0 0 16px;">Voici votre code de connexion &agrave; la plateforme <strong>${escapeHtml(orgName)}</strong> :</p>
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:18px;">
           <tr>
             <td align="center" style="font-size:32px;letter-spacing:8px;font-weight:700;color:#0f172a;">
@@ -128,13 +141,59 @@ export class AuthService {
 
     const sent = await this.mailService.send({
       to,
-      subject: 'Votre code de connexion SEED',
+      subject: `Votre code de connexion ${orgName}`,
       html,
     });
 
     if (!sent) {
       this.logger.warn(`E-mail 2FA non envoyé à ${to}.`);
     }
+    return sent;
+  }
+
+  /**
+   * A double click or a browser retry can submit the login request twice.
+   * Reuse the fresh challenge instead of issuing two codes and two e-mails.
+   */
+  private async issueLoginTwoFactorChallenge(admin: AdminDocument): Promise<boolean> {
+    const adminId = admin._id.toString();
+    const pending = this.twoFactorChallengeLocks.get(adminId);
+    if (pending) {
+      await pending;
+      return false;
+    }
+
+    const task = (async () => {
+      const recentCode = await this.twoFactorCodeModel
+        .findOne({
+          adminId,
+          used: false,
+          expiresAt: { $gt: new Date() },
+          createdAt: { $gte: new Date(Date.now() - this.TWO_FACTOR_DEDUP_MS) },
+        })
+        .sort({ createdAt: -1 })
+        .exec();
+      if (recentCode) {
+        return false;
+      }
+
+      const code = await this.createCode(adminId);
+      const sent = await this.sendCodeEmail(admin.email, code);
+      if (!sent) {
+        await this.twoFactorCodeModel.updateOne({ adminId, code, used: false }, { used: true }).exec();
+      }
+      return sent;
+    })();
+
+    this.twoFactorChallengeLocks.set(adminId, task);
+    void task.finally(() => {
+      setTimeout(() => {
+        if (this.twoFactorChallengeLocks.get(adminId) === task) {
+          this.twoFactorChallengeLocks.delete(adminId);
+        }
+      }, this.TWO_FACTOR_DEDUP_MS);
+    });
+    return task;
   }
 
   async login(loginDto: LoginDto, ip?: string, userAgent?: string) {
@@ -235,7 +294,7 @@ export class AuthService {
         void this.mailService
           .send({
             to: admin.email,
-            subject: '🔒 Compte temporairement verrouillé — SEED',
+            subject: `🔒 Compte temporairement verrouillé — ${admin.email}`,
             html: `
               <p>Bonjour <strong>${escapeHtml(admin.name)}</strong>,</p>
               <p>Nous avons détecté <strong>${MAX_LOGIN_ATTEMPTS} tentatives de connexion échouées</strong> sur votre compte.</p>
@@ -256,8 +315,7 @@ export class AuthService {
       lockoutUntil: null,
     });
 
-    const code = await this.createCode(admin._id.toString());
-    await this.sendCodeEmail(admin.email, code);
+    const codeSent = await this.issueLoginTwoFactorChallenge(admin);
 
     await this.auditLogService.record({
       actorId: String(admin._id),
@@ -266,7 +324,7 @@ export class AuthService {
       action: 'auth.two_factor_challenge_sent',
       resourceType: 'admin',
       resourceId: String(admin._id),
-      metadata: { via: 'login', ip },
+      metadata: { via: 'login', ip, codeSent },
       method: 'POST',
       path: '/admin/auth/login',
       statusCode: 200,
@@ -597,11 +655,8 @@ export class AuthService {
     const resetUrl = `${this.buildFrontendUrl()}/admin/reset-password?token=${token}`;
 
     const siteConfig = await this.siteService.getPublicConfig();
-    const branding = {
-      logo: siteConfig.logo,
-      orgName: siteConfig.orgName,
-      social: siteConfig.social,
-    };
+    const orgName = siteConfig.orgName?.trim() || 'Organisation';
+    const branding = this.emailBranding(siteConfig.orgName);
 
     const html = renderEmailLayout({
       title: 'Réinitialisation de votre mot de passe',
@@ -609,7 +664,7 @@ export class AuthService {
         'Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe. Ce lien expire dans 1 heure.',
       contentHtml: `
         <p style="margin:0 0 16px;">Bonjour <strong>${escapeHtml(admin.name)}</strong>,</p>
-        <p style="margin:0 0 16px;">Vous avez demandé la réinitialisation du mot de passe de votre compte sur la plateforme <strong>SEED</strong>.</p>
+        <p style="margin:0 0 16px;">Vous avez demandé la réinitialisation du mot de passe de votre compte sur la plateforme <strong>${escapeHtml(orgName)}</strong>.</p>
         <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
           <tr>
             <td align="center" style="background:#0f766e;border-radius:8px;padding:14px 24px;">
@@ -634,7 +689,7 @@ export class AuthService {
 
     const sent = await this.mailService.send({
       to: admin.email,
-      subject: 'Réinitialisation de votre mot de passe — SEED',
+      subject: `Réinitialisation de votre mot de passe — ${orgName}`,
       html,
     });
 
@@ -727,15 +782,12 @@ export class AuthService {
     await record.save();
 
     const siteConfig = await this.siteService.getPublicConfig();
-    const branding = {
-      logo: siteConfig.logo,
-      orgName: siteConfig.orgName,
-      social: siteConfig.social,
-    };
+    const orgName = siteConfig.orgName?.trim() || 'Organisation';
+    const branding = this.emailBranding(siteConfig.orgName);
 
     const html = renderEmailLayout({
       title: 'Votre mot de passe a été modifié',
-      preheader: 'Confirmation de la modification de votre mot de passe SEED.',
+      preheader: `Confirmation de la modification de votre mot de passe ${orgName}.`,
       contentHtml: `
         <p style="margin:0 0 16px;">Bonjour <strong>${escapeHtml(admin.name)}</strong>,</p>
         <p style="margin:0 0 16px;">
@@ -751,7 +803,7 @@ export class AuthService {
     void this.mailService
       .send({
         to: admin.email,
-        subject: '🔒 Votre mot de passe a été modifié — SEED',
+        subject: `🔒 Votre mot de passe a été modifié — ${orgName}`,
         html,
       })
       .catch((error) =>

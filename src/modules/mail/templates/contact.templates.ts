@@ -34,7 +34,7 @@ export interface ContactTemplateOptions {
  */
 export function contactNotificationTemplate(options: ContactTemplateOptions): string {
   const { payload, branding, colors } = options;
-  const orgName = branding?.orgName?.trim() || 'SEEDS';
+  const orgName = branding?.orgName?.trim() || 'Organisation';
   const receivedAt = (payload.createdAt ?? new Date()).toLocaleString('fr-FR', {
     dateStyle: 'long',
     timeStyle: 'short',
@@ -85,7 +85,7 @@ export function contactNotificationTemplate(options: ContactTemplateOptions): st
  */
 export function contactConfirmationTemplate(options: ContactTemplateOptions): string {
   const { payload, branding, colors } = options;
-  const orgName = branding?.orgName?.trim() || 'SEEDS';
+  const orgName = branding?.orgName?.trim() || 'Organisation';
   const recap = [
     renderEmailField('Nom', payload.name),
     renderEmailField('E-mail', payload.email),

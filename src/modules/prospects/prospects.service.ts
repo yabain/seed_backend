@@ -253,7 +253,7 @@ export class ProspectsService {
     };
 
     const html = renderEmailLayout({
-      title: 'Bienvenue sur SEED',
+      title: `Bienvenue chez ${siteConfig.orgName?.trim() || 'notre organisation'}`,
       preheader: "Merci de vous être inscrit à notre lettre d'information.",
       contentHtml: `
         <p>Bonjour <strong>${escapeHtml(prospect.name || '')}</strong>,</p>
@@ -267,7 +267,7 @@ export class ProspectsService {
 
     await this.mailService.send({
       to: prospect.email,
-      subject: "Bienvenue sur SEED — Lettre d'information",
+      subject: `Bienvenue chez ${siteConfig.orgName?.trim() || 'notre organisation'} — Lettre d'information`,
       html,
     });
   }
