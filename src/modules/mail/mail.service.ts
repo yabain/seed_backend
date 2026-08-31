@@ -56,7 +56,7 @@ export class MailService {
     }
 
     try {
-      await transporter.sendMail({
+      const result = await transporter.sendMail({
         from: this.fromAddress(),
         to: options.to,
         subject: options.subject,
@@ -64,6 +64,22 @@ export class MailService {
         replyTo: options.replyTo,
         attachments: options.attachments,
       });
+
+      // Nodemailer ne lève pas systématiquement une erreur lorsqu'un serveur
+      // SMTP rejette un destinataire : il renseigne alors `rejected` dans sa
+      // réponse. Une annonce étant envoyée destinataire par destinataire, ne
+      // pas le contrôler faisait apparaître ces échecs comme des envois réussis.
+      const rejected = result.rejected ?? [];
+      const accepted = result.accepted ?? [];
+      if (rejected.length > 0 || accepted.length === 0) {
+        this.logger.warn(
+          `E-mail non accepté par le serveur SMTP « ${options.subject} » ` +
+            `(destinataire : ${Array.isArray(options.to) ? options.to.join(', ') : options.to}; ` +
+            `rejetés : ${rejected.join(', ') || 'aucun'}; réponse : ${result.response || 'inconnue'}).`,
+        );
+        return false;
+      }
+
       return true;
     } catch (error) {
       this.logger.error(
