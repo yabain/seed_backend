@@ -59,9 +59,17 @@ export class UpdateBannerDto {
   @IsBoolean()
   rotatingVisible?: boolean;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => BannerFigureDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BannerFigureDto)
   figures?: BannerFigureDto[];
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   authBackgroundImage?: string;
+
+  @IsOptional()
+  @IsString()
+  pageBackgroundImage?: string;
 }

@@ -39,7 +39,10 @@ export class BannerService {
       banner.rotatingVisible = dto.rotatingVisible;
     }
     if (dto.figures !== undefined) banner.figures = dto.figures.slice(0, 3);
-    if (dto.authBackgroundImage !== undefined) banner.authBackgroundImage = dto.authBackgroundImage;
+    if (dto.pageBackgroundImage !== undefined)
+      banner.pageBackgroundImage = dto.pageBackgroundImage;
+    if (dto.authBackgroundImage !== undefined)
+      banner.authBackgroundImage = dto.authBackgroundImage;
     await banner.save();
     return banner.toObject();
   }

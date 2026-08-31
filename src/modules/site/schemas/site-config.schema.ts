@@ -92,6 +92,7 @@ export class SiteConfig {
       news: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
       programs: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
       partners: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
+      resources: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
     },
     default: {},
   })

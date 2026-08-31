@@ -60,6 +60,9 @@ export class Banner {
   figures: BannerFigure[];
 
   @Prop({ default: '' })
+  pageBackgroundImage: string;
+
+  @Prop({ default: '' })
   authBackgroundImage: string;
 }
 
