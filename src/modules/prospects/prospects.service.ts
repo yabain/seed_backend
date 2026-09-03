@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Prospect, ProspectDocument } from './prospect.schema';
@@ -11,6 +12,7 @@ import { CreateProspectDto, UpdateProspectDto } from './dto/prospect.dto';
 import { MailService } from '../mail/mail.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { SiteService } from '../site/site.service';
+import { emailSocialFromEnv } from '../../common/utils/email-social.util';
 
 export interface ProspectItem {
   id: string;
@@ -43,6 +45,7 @@ export class ProspectsService {
     private readonly prospectModel: Model<ProspectDocument>,
     private readonly mailService: MailService,
     private readonly siteService: SiteService,
+    private readonly configService: ConfigService,
   ) {}
 
   async list(page = 1, limit = 25, keyword = ''): Promise<ProspectListResult> {
@@ -249,7 +252,7 @@ export class ProspectsService {
     const branding = {
       logo: siteConfig.logo,
       orgName: siteConfig.orgName,
-      social: siteConfig.social,
+      social: emailSocialFromEnv(this.configService),
     };
 
     const html = renderEmailLayout({

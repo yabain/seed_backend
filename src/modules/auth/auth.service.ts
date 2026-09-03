@@ -28,6 +28,7 @@ import { MailService } from '../mail/mail.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { SiteService } from '../site/site.service';
+import { emailSocialFromEnv } from '../../common/utils/email-social.util';
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
@@ -41,7 +42,10 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly CODE_TTL_MS = 10 * 60 * 1000;
   private readonly TWO_FACTOR_DEDUP_MS = 30 * 1000;
-  private readonly twoFactorChallengeLocks = new Map<string, Promise<boolean>>();
+  private readonly twoFactorChallengeLocks = new Map<
+    string,
+    Promise<boolean>
+  >();
 
   constructor(
     @InjectModel(Admin.name) private readonly adminModel: Model<AdminDocument>,
@@ -60,13 +64,7 @@ export class AuthService {
     return {
       logo: this.configService.get<string>('EMAIL_LOGO_URL')?.trim() || '',
       orgName: orgName?.trim() || 'Organisation',
-      social: {
-        facebook: this.configService.get<string>('EMAIL_SOCIAL_FACEBOOK')?.trim() || '',
-        instagram: this.configService.get<string>('EMAIL_SOCIAL_INSTAGRAM')?.trim() || '',
-        linkedin: this.configService.get<string>('EMAIL_SOCIAL_LINKEDIN')?.trim() || '',
-        twitter: this.configService.get<string>('EMAIL_SOCIAL_TWITTER')?.trim() || '',
-        youtube: this.configService.get<string>('EMAIL_SOCIAL_YOUTUBE')?.trim() || '',
-      },
+      social: emailSocialFromEnv(this.configService),
     };
   }
 
@@ -155,7 +153,9 @@ export class AuthService {
    * A double click or a browser retry can submit the login request twice.
    * Reuse the fresh challenge instead of issuing two codes and two e-mails.
    */
-  private async issueLoginTwoFactorChallenge(admin: AdminDocument): Promise<boolean> {
+  private async issueLoginTwoFactorChallenge(
+    admin: AdminDocument,
+  ): Promise<boolean> {
     const adminId = admin._id.toString();
     const pending = this.twoFactorChallengeLocks.get(adminId);
     if (pending) {
@@ -180,7 +180,9 @@ export class AuthService {
       const code = await this.createCode(adminId);
       const sent = await this.sendCodeEmail(admin.email, code);
       if (!sent) {
-        await this.twoFactorCodeModel.updateOne({ adminId, code, used: false }, { used: true }).exec();
+        await this.twoFactorCodeModel
+          .updateOne({ adminId, code, used: false }, { used: true })
+          .exec();
       }
       return sent;
     })();

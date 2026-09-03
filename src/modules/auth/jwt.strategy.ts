@@ -4,6 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Request } from 'express';
 import { Admin, AdminDocument } from './schemas/admin.schema';
 
 export interface JwtPayload {
@@ -12,6 +13,8 @@ export interface JwtPayload {
   role: string;
 }
 
+export const TOKEN_COOKIE_NAME = 'seed_token';
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
@@ -19,7 +22,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     @InjectModel(Admin.name) private readonly adminModel: Model<AdminDocument>,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (request: Request): string | null => {
+          const cookies = request?.cookies as
+            Record<string, string> | undefined;
+          const token = cookies?.[TOKEN_COOKIE_NAME];
+          return typeof token === 'string' && token.length > 0 ? token : null;
+        },
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET') ?? 'seed-dev-secret',
     });

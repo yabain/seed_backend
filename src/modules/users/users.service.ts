@@ -22,6 +22,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { MailService } from '../mail/mail.service';
 import { SiteService } from '../site/site.service';
 import { accountCredentialsTemplate } from '../mail/templates/account.templates';
+import { emailSocialFromEnv } from '../../common/utils/email-social.util';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   user: 'Utilisateur',
@@ -382,15 +383,10 @@ export class UsersService {
             secondary: siteConfig.secondaryColor,
           },
           branding: {
-            logo: this.configService.get<string>('EMAIL_LOGO_URL')?.trim() || '',
+            logo:
+              this.configService.get<string>('EMAIL_LOGO_URL')?.trim() || '',
             orgName: siteConfig.orgName,
-            social: {
-              facebook: this.configService.get<string>('EMAIL_SOCIAL_FACEBOOK')?.trim() || '',
-              instagram: this.configService.get<string>('EMAIL_SOCIAL_INSTAGRAM')?.trim() || '',
-              linkedin: this.configService.get<string>('EMAIL_SOCIAL_LINKEDIN')?.trim() || '',
-              twitter: this.configService.get<string>('EMAIL_SOCIAL_TWITTER')?.trim() || '',
-              youtube: this.configService.get<string>('EMAIL_SOCIAL_YOUTUBE')?.trim() || '',
-            },
+            social: emailSocialFromEnv(this.configService),
           },
         }),
       });

@@ -16,6 +16,7 @@ import {
   type ContactTemplateOptions,
 } from '../mail/templates/contact.templates';
 import { SiteService } from '../site/site.service';
+import { emailSocialFromEnv } from '../../common/utils/email-social.util';
 
 @Injectable()
 export class ContactService {
@@ -51,7 +52,7 @@ export class ContactService {
     const branding: ContactTemplateOptions['branding'] = {
       logo: this.siteService.resolveMediaUrl(siteConfig.logo),
       orgName: siteConfig.orgName,
-      social: siteConfig.social,
+      social: emailSocialFromEnv(this.configService),
     };
     const colors: ContactTemplateOptions['colors'] = {
       primary: siteConfig.primaryColor,
@@ -62,7 +63,11 @@ export class ContactService {
     await this.mailService.send({
       to: recipients,
       subject: `Nouveau message de contact — ${dto.subject}`,
-      html: contactNotificationTemplate({ payload: fromVisitor, colors, branding }),
+      html: contactNotificationTemplate({
+        payload: fromVisitor,
+        colors,
+        branding,
+      }),
       replyTo: dto.email,
     });
 
@@ -70,7 +75,11 @@ export class ContactService {
     await this.mailService.send({
       to: dto.email,
       subject: 'Nous avons bien reçu votre message',
-      html: contactConfirmationTemplate({ payload: fromVisitor, colors, branding }),
+      html: contactConfirmationTemplate({
+        payload: fromVisitor,
+        colors,
+        branding,
+      }),
     });
 
     return message;

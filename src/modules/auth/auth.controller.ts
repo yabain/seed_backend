@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Req, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
+import { TOKEN_COOKIE_NAME } from './jwt.strategy';
 import { LoginDto } from './dto/login.dto';
 import { SendTwoFactorCodeDto } from './dto/send-two-factor-code.dto';
 import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
@@ -12,6 +14,21 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: IS_PRODUCTION,
+  // Le frontend et l'API sont hébergés sur des sites différents en production
+  // (ex. seeds.yaba-in.com ↔ seeds.racciram.org). Un cookie SameSite=Lax n'est
+  // PAS envoyé lors des requêtes cross-site (XHR/fetch), ce qui provoque une
+  // déconnexion immédiate. `SameSite=None; Secure` est requis pour autoriser
+  // le jeton en cross-site en production (HTTPS). En dev (localhost, même
+  // site), on garde `Lax` qui est plus sûr.
+  sameSite: IS_PRODUCTION ? ('none' as const) : ('lax' as const),
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
 @Controller('admin/auth')
 export class AuthController {
@@ -28,6 +45,18 @@ export class AuthController {
     @CurrentUser() currentUser: { id: string },
   ) {
     return this.authService.updateProfile(currentUser.id, dto);
+  }
+
+  @Public()
+  @Post('logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie(TOKEN_COOKIE_NAME, {
+      httpOnly: true,
+      secure: IS_PRODUCTION,
+      sameSite: IS_PRODUCTION ? 'none' : 'lax',
+      path: '/',
+    });
+    return { success: true };
   }
 
   @Public()
@@ -58,13 +87,22 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('2fa/verify')
-  verifyTwoFactor(
+  async verifyTwoFactor(
     @Body() verifyTwoFactorDto: VerifyTwoFactorDto,
     @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const ip = req.ip || req.connection?.remoteAddress;
     const userAgent = req.headers?.['user-agent'];
-    return this.authService.verifyTwoFactor(verifyTwoFactorDto, ip, userAgent);
+    const result = await this.authService.verifyTwoFactor(
+      verifyTwoFactorDto,
+      ip,
+      userAgent,
+    );
+    res.cookie(TOKEN_COOKIE_NAME, result.accessToken, COOKIE_OPTIONS);
+    return {
+      admin: result.admin,
+    };
   }
 
   @Public()
