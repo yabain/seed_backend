@@ -53,6 +53,10 @@ export class SegmentsDto {
   @IsOptional()
   @IsBoolean()
   events?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  team?: boolean;
 }
 
 export class LandingSectionTextDto {
@@ -66,6 +70,7 @@ export class LandingSectionsDto {
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) news?: LandingSectionTextDto;
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) programs?: LandingSectionTextDto;
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) partners?: LandingSectionTextDto;
+  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) team?: LandingSectionTextDto;
 }
 
 export class UpdateSiteConfigDto {

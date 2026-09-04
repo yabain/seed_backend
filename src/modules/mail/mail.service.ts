@@ -1,7 +1,10 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import * as nodemailer from 'nodemailer';
 import { SmtpService } from '../smtp/smtp.service';
+import { EmailLog, EmailLogDocument } from '../email/email.schema';
 
 export interface SendMailAttachment {
   filename: string;
@@ -14,6 +17,20 @@ export interface SendMailOptions {
   html: string;
   replyTo?: string;
   attachments?: SendMailAttachment[];
+  /** Contrôle l'enregistrement du log. `false` désactive l'enregistrement (ex. annonces, gérées par lot). */
+  log?: boolean;
+}
+
+export interface SaveEmailLogData {
+  from: string;
+  to: string;
+  subject: string;
+  body: string;
+  status: boolean;
+  category?: 'single' | 'announcement';
+  groupId?: string;
+  sentCount?: number;
+  totalCount?: number;
 }
 
 @Injectable()
@@ -23,6 +40,8 @@ export class MailService {
   constructor(
     private readonly configService: ConfigService,
     private readonly smtpService: SmtpService,
+    @InjectModel(EmailLog.name)
+    private readonly emailLogModel: Model<EmailLogDocument>,
   ) {}
 
   private async buildTransporter(): Promise<nodemailer.Transporter | null> {
@@ -51,13 +70,25 @@ export class MailService {
 
   async send(options: SendMailOptions): Promise<boolean> {
     const transporter = await this.buildTransporter();
+    const shouldLog = options.log !== false;
+
     if (!transporter) {
+      if (shouldLog) {
+        await this.saveLog({
+          from: this.fromAddress(),
+          to: this.stringifyTo(options.to),
+          subject: options.subject,
+          body: options.html,
+          status: false,
+        });
+      }
       return false;
     }
 
+    const from = this.fromAddress();
     try {
       const result = await transporter.sendMail({
-        from: this.fromAddress(),
+        from,
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -71,10 +102,22 @@ export class MailService {
       // pas le contrôler faisait apparaître ces échecs comme des envois réussis.
       const rejected = result.rejected ?? [];
       const accepted = result.accepted ?? [];
-      if (rejected.length > 0 || accepted.length === 0) {
+      const success = rejected.length === 0 && accepted.length > 0;
+
+      if (shouldLog) {
+        await this.saveLog({
+          from,
+          to: this.stringifyTo(options.to),
+          subject: options.subject,
+          body: options.html,
+          status: success,
+        });
+      }
+
+      if (!success) {
         this.logger.warn(
           `E-mail non accepté par le serveur SMTP « ${options.subject} » ` +
-            `(destinataire : ${Array.isArray(options.to) ? options.to.join(', ') : options.to}; ` +
+            `(destinataire : ${this.stringifyTo(options.to)}; ` +
             `rejetés : ${rejected.join(', ') || 'aucun'}; réponse : ${result.response || 'inconnue'}).`,
         );
         return false;
@@ -82,12 +125,47 @@ export class MailService {
 
       return true;
     } catch (error) {
+      if (shouldLog) {
+        await this.saveLog({
+          from,
+          to: this.stringifyTo(options.to),
+          subject: options.subject,
+          body: options.html,
+          status: false,
+        });
+      }
       this.logger.error(
         `Échec de l'envoi de l'e-mail « ${options.subject} » :`,
         error,
       );
       return false;
     }
+  }
+
+  /** Enregistre un e-mail sortant (succès ou échec) dans la collection des logs. */
+  async saveLog(data: SaveEmailLogData): Promise<void> {
+    try {
+      await this.emailLogModel.create({
+        from: data.from,
+        to: data.to,
+        subject: data.subject,
+        body: data.body,
+        status: data.status,
+        category: data.category ?? 'single',
+        groupId: data.groupId,
+        sentCount: data.sentCount ?? 1,
+        totalCount: data.totalCount ?? 1,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Échec de l'enregistrement du log e-mail « ${data.subject} » :`,
+        error,
+      );
+    }
+  }
+
+  private stringifyTo(to: string | string[]): string {
+    return Array.isArray(to) ? to.join(', ') : to;
   }
 
   async sendWithLogging(

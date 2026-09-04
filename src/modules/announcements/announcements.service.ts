@@ -24,6 +24,7 @@ import { UpdateAnnouncementSettingsDto } from './dto/update-settings.dto';
 import { MailService } from '../mail/mail.service';
 import { Admin } from '../auth/schemas/admin.schema';
 import { Prospect } from '../prospects/prospect.schema';
+import { EmailLog, EmailLogDocument } from '../email/email.schema';
 import { resolveUploadDir } from '../../common/utils/upload-dir.util';
 import { deleteUploadFile } from '../../common/utils/upload-file.util';
 
@@ -53,6 +54,8 @@ export class AnnouncementsService {
     private readonly adminModel: Model<Admin>,
     @InjectModel(Prospect.name)
     private readonly prospectModel: Model<Prospect>,
+    @InjectModel(EmailLog.name)
+    private readonly emailLogModel: Model<EmailLogDocument>,
     private readonly mailService: MailService,
   ) {}
 
@@ -433,6 +436,7 @@ export class AnnouncementsService {
           } catch {
             return;
           }
+          await this.logAnnouncementGroup(doc);
           return;
         }
 
@@ -492,6 +496,7 @@ export class AnnouncementsService {
             a.path.replace(/^\/uploads\//, '').replace(/^\//, ''),
           ),
         })),
+        log: false,
       });
 
       delivery.attempts += 1;
@@ -508,6 +513,40 @@ export class AnnouncementsService {
       delivery.status = 'failed';
       delivery.error =
         error instanceof Error ? error.message : 'Erreur inconnue.';
+    }
+  }
+
+  /**
+   * Enregistre un log groupé pour une annonce, avec le résultat « envoyés /
+   * total » (ex. 4/10), afin d'apparaître de façon lisible dans la liste des
+   * e-mails sortants.
+   */
+  private async logAnnouncementGroup(doc: AnnouncementDocument): Promise<void> {
+    try {
+      const total = doc.deliveries.length;
+      const sent = doc.deliveries.filter((d) => d.status === 'sent').length;
+      const groupLabel = GROUP_LABELS[doc.recipientGroup] ?? doc.recipientGroup;
+      const recipientsPreview = doc.deliveries
+        .slice(0, 3)
+        .map((d) => d.email)
+        .join(', ');
+
+      await this.mailService.saveLog({
+        from: '',
+        to: `Groupe : ${groupLabel}${total > 0 ? ` (${recipientsPreview}${total > 3 ? ', …' : ''})` : ''}`,
+        subject: `${doc.subject} (réussi ${sent}/${total})`,
+        body: `${doc.subject}\nGroupe : ${groupLabel}\nRésultat : ${sent}/${total} envoyé(s)`,
+        status: sent >= total,
+        category: 'announcement',
+        groupId: doc._id.toString(),
+        sentCount: sent,
+        totalCount: total,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Échec de l'enregistrement du log groupé de l'annonce « ${doc.subject} » :`,
+        error,
+      );
     }
   }
 

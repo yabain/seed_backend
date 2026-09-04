@@ -76,6 +76,12 @@ export class Admin {
 
   @Prop({ default: 0 })
   twoFactorAttempts: number;
+
+  @Prop({ trim: true })
+  googleId?: string;
+
+  @Prop({ trim: true })
+  googleEmail?: string;
 }
 
 export const AdminSchema = SchemaFactory.createForClass(Admin);

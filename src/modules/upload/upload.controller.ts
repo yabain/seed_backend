@@ -8,7 +8,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Roles } from '../../common/decorators/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { randomBytes } from 'crypto';
@@ -36,7 +35,13 @@ interface UploadBody {
   oldPath?: string;
 }
 
-@Roles('admin', 'superadmin')
+/**
+ * Upload d'image générique, accessible à tout utilisateur authentifié
+ * (l'authentification est imposée globalement par JwtAuthGuard). Les `user` et
+ * `consultant` devant pouvoir gérer du contenu (actualités, programmes,
+ * ressources, événements) et modifier leur propre profil (photo), ils doivent
+ * pouvoir uploader une image sans restriction de rôle.
+ */
 @Controller('admin/upload')
 export class UploadController {
   constructor(private readonly configService: ConfigService) {}

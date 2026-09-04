@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-export type EmailDocument = HydratedDocument<EmailLog>;
+export type EmailLogDocument = HydratedDocument<EmailLog>;
 
 @Schema({ timestamps: true, collection: 'emails' })
 export class EmailLog {
@@ -19,6 +19,18 @@ export class EmailLog {
 
   @Prop({ required: true, default: false })
   status: boolean;
+
+  @Prop({ enum: ['single', 'announcement'], default: 'single' })
+  category: 'single' | 'announcement';
+
+  @Prop()
+  groupId?: string;
+
+  @Prop({ default: 1 })
+  sentCount: number;
+
+  @Prop({ default: 1 })
+  totalCount: number;
 }
 
 export const EmailLogSchema = SchemaFactory.createForClass(EmailLog);

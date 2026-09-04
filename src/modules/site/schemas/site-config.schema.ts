@@ -75,6 +75,7 @@ export class SiteConfig {
       programs: { type: Boolean, default: true },
       partners: { type: Boolean, default: true },
       events: { type: Boolean, default: true },
+      team: { type: Boolean, default: true },
     },
     default: {},
   })
@@ -84,6 +85,7 @@ export class SiteConfig {
     programs: boolean;
     partners: boolean;
     events: boolean;
+    team: boolean;
   };
 
   @Prop({
@@ -93,6 +95,7 @@ export class SiteConfig {
       programs: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
       partners: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
       resources: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
+      team: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
     },
     default: {},
   })

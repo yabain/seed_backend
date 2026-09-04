@@ -1,12 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { Body, Controller, Get, Patch, Post, Req, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { TOKEN_COOKIE_NAME } from './jwt.strategy';
 import { LoginDto } from './dto/login.dto';
+import { GoogleLoginDto } from './dto/google-login.dto';
 import { SendTwoFactorCodeDto } from './dto/send-two-factor-code.dto';
 import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -33,6 +42,27 @@ const COOKIE_OPTIONS = {
 @Controller('admin/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('google')
+  async googleLogin(
+    @Body() googleLoginDto: GoogleLoginDto,
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const ip = req.ip || req.connection?.remoteAddress;
+    const userAgent = req.headers?.['user-agent'];
+    const result = await this.authService.googleLogin(
+      googleLoginDto,
+      ip,
+      userAgent,
+    );
+    res.cookie(TOKEN_COOKIE_NAME, result.accessToken, COOKIE_OPTIONS);
+    return {
+      admin: result.admin,
+    };
+  }
 
   @Get('me')
   getMe(@CurrentUser() currentUser: { id: string }) {

@@ -11,6 +11,7 @@ import {
 } from './schemas/distributed-lock.schema';
 import { Admin, AdminSchema } from '../auth/schemas/admin.schema';
 import { Prospect, ProspectSchema } from '../prospects/prospect.schema';
+import { EmailLog, EmailLogSchema } from '../email/email.schema';
 import { AnnouncementsController } from './announcements.controller';
 import { AnnouncementsService } from './announcements.service';
 import { AnnouncementsCronService } from './announcements-cron.service';
@@ -23,6 +24,7 @@ import { AnnouncementsCronService } from './announcements-cron.service';
       { name: DistributedLock.name, schema: DistributedLockSchema },
       { name: Admin.name, schema: AdminSchema },
       { name: Prospect.name, schema: ProspectSchema },
+      { name: EmailLog.name, schema: EmailLogSchema },
     ]),
   ],
   controllers: [AnnouncementsController],

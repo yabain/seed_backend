@@ -36,8 +36,13 @@ export class EmailController {
   getOutputMails(
     @Query('page') page?: string,
     @Query('keyword') keyword?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.emailService.getOutputMails(page ? Number(page) : 1, keyword);
+    return this.emailService.getOutputMails(
+      page ? Number(page) : 1,
+      keyword,
+      limit ? Number(limit) : undefined,
+    );
   }
 
   @Get('get-statistics')

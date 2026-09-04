@@ -4,7 +4,7 @@ import * as nodemailer from 'nodemailer';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SmtpService } from '../smtp/smtp.service';
-import { EmailLog, EmailDocument } from './email.schema';
+import { EmailLog, EmailLogDocument } from './email.schema';
 
 export interface EmailStats {
   month: string;
@@ -31,6 +31,10 @@ export interface EmailListResult {
     subject: string;
     body: string;
     status: boolean;
+    category: 'single' | 'announcement';
+    groupId?: string;
+    sentCount: number;
+    totalCount: number;
     createdAt: string;
   }>;
   meta: EmailListMeta;
@@ -42,7 +46,7 @@ export class EmailService {
 
   constructor(
     @InjectModel(EmailLog.name)
-    private readonly emailModel: Model<EmailDocument>,
+    private readonly emailModel: Model<EmailLogDocument>,
     private readonly smtpService: SmtpService,
     private readonly configService: ConfigService,
   ) {}
@@ -143,10 +147,13 @@ export class EmailService {
   async getOutputMails(
     page: number,
     keyword?: string,
+    limit?: number,
   ): Promise<EmailListResult> {
     const safePage = Number.isFinite(page) ? Math.max(1, Number(page)) : 1;
-    const limit = 10;
-    const skip = (safePage - 1) * limit;
+    const safeLimit = [10, 25, 50, 100].includes(Number(limit))
+      ? Number(limit)
+      : 10;
+    const skip = (safePage - 1) * safeLimit;
 
     const filter: Record<string, unknown> = {};
     const trimmedKeyword = (keyword ?? '').trim();
@@ -163,12 +170,12 @@ export class EmailService {
         .find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit)
+        .limit(safeLimit)
         .lean()
         .exec(),
     ]);
 
-    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+    const totalPages = Math.max(1, Math.ceil(totalItems / safeLimit));
     const successCount = await this.emailModel.countDocuments({ status: true });
     const failedCount = await this.emailModel.countDocuments({ status: false });
 
@@ -181,6 +188,10 @@ export class EmailService {
         subject: (raw.subject as string) || '',
         body: (raw.body as string) || '',
         status: (raw.status as boolean) || false,
+        category: (raw.category as 'single' | 'announcement') ?? 'single',
+        groupId: (raw.groupId as string) || undefined,
+        sentCount: (raw.sentCount as number) ?? 1,
+        totalCount: (raw.totalCount as number) ?? 1,
         createdAt:
           raw.createdAt instanceof Date
             ? raw.createdAt.toISOString()
@@ -194,8 +205,8 @@ export class EmailService {
         currentPage: safePage,
         totalPages,
         totalItems,
-        limit,
-        hasNextPage: safePage * limit < totalItems,
+        limit: safeLimit,
+        hasNextPage: safePage * safeLimit < totalItems,
         hasPrevPage: safePage > 1,
         success: successCount,
         failed: failedCount,

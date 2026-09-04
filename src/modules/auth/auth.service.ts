@@ -20,6 +20,7 @@ import {
   PasswordResetTokenDocument,
 } from './schemas/password-reset-token.schema';
 import { LoginDto } from './dto/login.dto';
+import { GoogleLoginDto } from './dto/google-login.dto';
 import { SendTwoFactorCodeDto } from './dto/send-two-factor-code.dto';
 import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -36,6 +37,17 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 const MAX_TWO_FACTOR_ATTEMPTS = 5;
 
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+
+type GoogleTokenInfo = {
+  sub: string;
+  email?: string;
+  email_verified?: boolean | string;
+  aud?: string;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
+};
 
 @Injectable()
 export class AuthService {
@@ -527,6 +539,149 @@ export class AuthService {
         avatar: admin.avatar || undefined,
       },
     };
+  }
+
+  /**
+   * Connexion via Google (Google Identity Services). Le frontend envoie un
+   * ID token obtenu avec GSI ; le backend le vérifie via l'endpoint Google
+   * `tokeninfo` en contrôlant l'audience. Le compte administratif est rattaché
+   * par adresse e-mail vérifiée (aucune création de compte).
+   *
+   * La 2FA par code e-mail est ignorée : Google est considéré comme un second
+   * facteur d'authentification fiable.
+   */
+  async googleLogin(
+    dto: GoogleLoginDto,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<{ accessToken: string; admin: object }> {
+    const googleUser = await this.verifyGoogleIdToken(dto.idToken);
+    const email = (googleUser.email ?? '').toLowerCase().trim();
+    if (!email) {
+      throw new UnauthorizedException(
+        'Aucune adresse e-mail renvoyée par Google. La connexion est impossible.',
+      );
+    }
+
+    const admin = await this.adminModel.findOne({ email }).exec();
+    if (!admin) {
+      await this.auditLogService.record({
+        action: 'auth.login_failed',
+        resourceType: 'admin',
+        metadata: { reason: 'google_user_not_found', email },
+        method: 'POST',
+        path: '/admin/auth/google',
+        statusCode: 401,
+        ip,
+        userAgent,
+      });
+      throw new UnauthorizedException(
+        'Aucun compte administrateur associé à cette adresse e-mail. Contactez un administrateur.',
+      );
+    }
+
+    if (!admin.isActive) {
+      await this.auditLogService.record({
+        actorId: String(admin._id),
+        actorEmail: admin.email,
+        action: 'auth.login_failed',
+        resourceType: 'admin',
+        resourceId: String(admin._id),
+        metadata: { reason: 'google_account_disabled' },
+        method: 'POST',
+        path: '/admin/auth/google',
+        statusCode: 401,
+        ip,
+        userAgent,
+      });
+      throw new UnauthorizedException('Ce compte est désactivé.');
+    }
+
+    await this.adminModel.findByIdAndUpdate(admin._id, {
+      lastLoginAt: new Date(),
+      googleId: googleUser.sub,
+      googleEmail: email,
+      loginAttempts: 0,
+      lockoutUntil: null,
+      twoFactorAttempts: 0,
+      avatar: googleUser.picture || admin.avatar || undefined,
+    });
+
+    await this.auditLogService.record({
+      actorId: String(admin._id),
+      actorEmail: admin.email,
+      actorRole: admin.role,
+      action: 'auth.login',
+      resourceType: 'admin',
+      resourceId: String(admin._id),
+      resourceLabel: admin.email,
+      metadata: { via: 'google', ip },
+      method: 'POST',
+      path: '/admin/auth/google',
+      statusCode: 200,
+      ip,
+      userAgent,
+    });
+
+    const payload = {
+      sub: admin._id.toString(),
+      email: admin.email,
+      role: admin.role,
+    };
+
+    return {
+      accessToken: await this.jwtService.signAsync(payload),
+      admin: {
+        id: admin._id.toString(),
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        avatar: googleUser.picture || admin.avatar || undefined,
+      },
+    };
+  }
+
+  /**
+   * Vérifie un ID token Google et retourne ses claims. N'utilise que
+   * `GOOGLE_CLIENT_ID` (pas de secret ni de callback) : cohérent avec une
+   * connexion frontend Google Identity Services.
+   */
+  private async verifyGoogleIdToken(idToken: string): Promise<GoogleTokenInfo> {
+    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    if (!googleClientId) {
+      throw new UnauthorizedException(
+        'La connexion avec Google n’est pas configurée.',
+      );
+    }
+
+    let tokenInfo: GoogleTokenInfo;
+    try {
+      const response = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+      );
+      if (!response.ok) {
+        throw new Error('invalid google token');
+      }
+      tokenInfo = (await response.json()) as GoogleTokenInfo;
+    } catch {
+      throw new UnauthorizedException('Jeton Google invalide.');
+    }
+
+    if (tokenInfo.aud !== googleClientId) {
+      throw new UnauthorizedException(
+        'Jeton Google invalide (audience incorrecte).',
+      );
+    }
+    if (!tokenInfo.sub || !tokenInfo.email) {
+      throw new UnauthorizedException('Jeton Google invalide.');
+    }
+    if (tokenInfo.email_verified === false || tokenInfo.email_verified === 'false') {
+      throw new UnauthorizedException(
+        'L’adresse e-mail Google n’est pas vérifiée.',
+      );
+    }
+
+    return tokenInfo;
   }
 
   async getProfile(adminId: string) {
