@@ -32,6 +32,7 @@ import { FeaturesSectionModule } from './modules/features-section/features-secti
 import { CountriesSectionModule } from './modules/countries-section/countries-section.module';
 import { VideoHighlightSectionModule } from './modules/video-highlight-section/video-highlight-section.module';
 import { TeamModule } from './modules/team/team.module';
+import { DonationsModule } from './modules/donations/donations.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -70,6 +71,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     CountriesSectionModule,
     VideoHighlightSectionModule,
     TeamModule,
+    DonationsModule,
     SeedModule,
   ],
   controllers: [AppController],

@@ -90,16 +90,17 @@ export class SiteConfig {
 
   @Prop({
     type: {
-      events: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
-      news: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
-      programs: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
-      partners: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
-      resources: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
-      team: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' } },
+      events: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
+      news: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
+      programs: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
+      partners: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
+      resources: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
+      team: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
+      donations: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
     },
     default: {},
   })
-  landingSections: Record<string, { eyebrow: string; title: string; description: string }>;
+  landingSections: Record<string, { eyebrow: string; title: string; description: string; buttonLabel: string }>;
 }
 
 export const SiteConfigSchema = SchemaFactory.createForClass(SiteConfig);

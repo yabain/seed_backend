@@ -36,6 +36,9 @@ export class TeamMember {
   @Prop({ default: '' })
   role: string;
 
+  @Prop({ default: '' })
+  description: string;
+
   @Prop({ default: true })
   isActive: boolean;
 

@@ -156,6 +156,7 @@ export class TeamService {
       photo: dto.photo ?? '',
       name: dto.name.trim(),
       role: dto.role?.trim() ?? '',
+      description: dto.description?.trim() ?? '',
       isActive: dto.isActive ?? true,
       socialLinks: {
         facebook: dto.socialLinks?.facebook?.trim() ?? '',
@@ -183,6 +184,7 @@ export class TeamService {
     if (dto.photo !== undefined) member.photo = dto.photo;
     if (dto.name !== undefined) member.name = dto.name.trim();
     if (dto.role !== undefined) member.role = dto.role?.trim() ?? '';
+    if (dto.description !== undefined) member.description = dto.description?.trim() ?? '';
     if (dto.isActive !== undefined) member.isActive = dto.isActive;
     if (dto.socialLinks !== undefined) {
       if (!member.socialLinks) member.socialLinks = {};
@@ -242,6 +244,7 @@ export class TeamService {
         photo: m.photo ?? '',
         name: m.name.trim(),
         role: m.role?.trim() ?? '',
+        description: m.description?.trim() ?? '',
         isActive: m.isActive ?? true,
         socialLinks: {
           facebook: m.socialLinks?.facebook?.trim() ?? '',

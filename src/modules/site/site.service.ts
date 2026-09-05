@@ -54,12 +54,16 @@ const DEFAULT_CONFIG = {
     resources: true,
     programs: true,
     partners: true,
+    donations: false,
   },
   landingSections: {
-    events: { eyebrow: 'Événements', title: 'Nos rendez-vous', description: 'Retrouvez nos événements à venir et passés.' },
-    news: { eyebrow: 'Actualités', title: 'Nos dernières nouvelles', description: 'Suivez notre actualité et nos réalisations.' },
-    programs: { eyebrow: 'Nos actions', title: 'Programmes et projets actifs', description: 'Des initiatives concrètes portées avec nos partenaires.' },
-    partners: { eyebrow: '', title: '', description: '' },
+    events: { eyebrow: 'Événements', title: 'Nos rendez-vous', description: 'Retrouvez nos événements à venir et passés.', buttonLabel: '' },
+    news: { eyebrow: 'Actualités', title: 'Nos dernières nouvelles', description: 'Suivez notre actualité et nos réalisations.', buttonLabel: '' },
+    programs: { eyebrow: 'Nos actions', title: 'Programmes et projets actifs', description: 'Des initiatives concrètes portées avec nos partenaires.', buttonLabel: '' },
+    partners: { eyebrow: '', title: '', description: '', buttonLabel: '' },
+    resources: { eyebrow: 'Ressources', title: 'Centre de ressources', description: 'Téléchargez nos rapports, guides et documents institutionnels.', buttonLabel: '' },
+    team: { eyebrow: 'Notre équipe', title: 'Les personnes qui nous font avancer', description: 'Découvrez les membres engagés au service de nos missions.', buttonLabel: '' },
+    donations: { eyebrow: 'Faire un don', title: 'Contribuez à notre mission', description: 'Soutenez nos projets en choisissant une méthode de paiement ci-dessous.', buttonLabel: 'Faire un don' },
   },
 };
 

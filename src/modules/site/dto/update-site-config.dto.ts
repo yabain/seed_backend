@@ -57,12 +57,17 @@ export class SegmentsDto {
   @IsOptional()
   @IsBoolean()
   team?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  donations?: boolean;
 }
 
 export class LandingSectionTextDto {
   @IsOptional() @IsString() @MaxLength(100) eyebrow?: string;
   @IsOptional() @IsString() @MaxLength(200) title?: string;
   @IsOptional() @IsString() @MaxLength(500) description?: string;
+  @IsOptional() @IsString() @MaxLength(100) buttonLabel?: string;
 }
 
 export class LandingSectionsDto {
@@ -70,7 +75,9 @@ export class LandingSectionsDto {
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) news?: LandingSectionTextDto;
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) programs?: LandingSectionTextDto;
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) partners?: LandingSectionTextDto;
+  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) resources?: LandingSectionTextDto;
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) team?: LandingSectionTextDto;
+  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) donations?: LandingSectionTextDto;
 }
 
 export class UpdateSiteConfigDto {

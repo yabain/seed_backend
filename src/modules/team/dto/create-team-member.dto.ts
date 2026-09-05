@@ -34,6 +34,11 @@ export class CreateTeamMemberDto {
   role?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 
