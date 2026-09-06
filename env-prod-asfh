@@ -1,0 +1,92 @@
+# ===================== SEEDS Backend - Fichier d'environnement 
+=====================
+
+# Copiez ce fichier en `.env` puis renseignez vos valeurs réelles :
+
+
+# --- Serveur ---
+#NODE_ENV=development
+NODE_ENV=production
+PORT=3000
+API_PREFIX=api
+
+# Origines autorisées pour le CORS (séparées par des virgules). "" = tout autoriser.
+
+# CLIENT_ORIGIN=http://localhost:4200
+CLIENT_ORIGIN=https://asfh.cm,https://www.asfh.cm,http://localhost:4200
+
+
+# --- Base de données MongoDB Atlas ---
+
+MONGODB_URI=mongodb+srv://support_db_user:J9uokGtTPGHmpbkn@asfhclustter.i3jcxw0.mongodb.net/?appName=ASFHclustter
+MONGODB_DB=asfh
+
+
+
+# --- Sécurité / JWT ---
+
+JWT_SECRET=HLJHDHdhsDI7Y7G8YGYG6FO5IKsRIY5KD5JsYDDES4DsY53SZ33aeSR3SrHJK7L98YM8L
+
+
+# --- Compte administrateur initial (créé automatiquement au premier lancement) ---
+
+# Rôle : superadmin (gestion des comptes et des contenus)
+
+ADMIN_EMAIL=flambel55@gmail.com
+ADMIN_PASSWORD=admin1234
+
+
+
+# --- E-mail (Nodemailer / SMTP) ---
+
+# Laisser SMTP_HOST vide pour désactiver l'envoi d'e-mails
+# (les messages restent sauvegardés en base).
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=support@asfh.cm
+SMTP_PASSWORD=chbkxpnwxtmdegra
+SMTP_FROM=support@asfh.cm
+
+# Destinataires de secours des notifications de contact (séparés par des virgules).
+
+# Utilisés uniquement si aucun compte actif du back-office n'a "notifyContact" activé.
+
+CONTACT_RECIPIENT_EMAIL=support@asfh.cm
+
+
+# --- Cryptographie ---
+
+# Clé utilisée pour chiffrer les identifiants SMTP en base de données.
+
+# CRYPT_KEY=changez-moi-par-une-cle-secrete-longue-et-aleatoire
+CRYPT_KEY=HSDu5S4eDFStDZ3n45E4wRZE4xRZ2d10Z1fDF9ZEZv4Z35E4mRZj45ER86oZEiRZGGrHPKMtNZAIUgAEZYzIRU
+
+
+# URL publique du backend (utilisée dans les e-mails et les uploads)
+# PUBLIC_URL=http://localhost:3000
+PUBLIC_URL=https://asfh.cm
+
+
+# Répertoire persistant des fichiers uploadés (images, PDF, pièces jointes…)
+# En production (NODE_ENV=production) : chemin ABSOLU hors du dossier de
+# déploiement pour survivre aux redéploiements. Par défaut :
+# UPLOAD_DI=/home/u505661520/public_html/seeds/uploads
+UPLOAD_DIR=/home/asfh/public_html/asfhUploads
+
+# En développement : relatif au dossier du projet.
+UPLOAD_DIR_LOCAL=uploads
+
+
+# --- Identité des e-mails d'authentification ---
+# Le logo doit être une URL publique absolue. Laissez un réseau vide pour masquer son icône.
+EMAIL_LOGO_URL=https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQkjqoUQvBqpfkcvE5jVGXQ-qITR0jZ7PUzsmcIdrcgXw&s=10
+
+EMAIL_SOCIAL_FACEBOOK=
+EMAIL_SOCIAL_INSTAGRAM=
+EMAIL_SOCIAL_LINKEDIN=
+EMAIL_SOCIAL_TWITTER=
+EMAIL_SOCIAL_YOUTUBE=
+
+GOOGLE_CLIENT_ID=746500820829-9jje1ebnj933hdp31ij2nqp0vcdt6evh.apps.googleusercontent.com

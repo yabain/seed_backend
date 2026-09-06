@@ -1,0 +1,93 @@
+# ===================== SEEDS Backend - Fichier d'environnement 
+=====================
+
+# Copiez ce fichier en `.env` puis renseignez vos valeurs réelles :
+
+
+# --- Serveur ---
+#NODE_ENV=development
+NODE_ENV=production
+PORT=3015
+API_PREFIX=api
+
+# Origines autorisées pour le CORS (séparées par des virgules). "" = tout autoriser.
+
+# CLIENT_ORIGIN=http://localhost:4200
+CLIENT_ORIGIN=https://seeds.yaba-in.com,https://the-seeds.net,http://localhost:4200
+
+
+# --- Base de données MongoDB Atlas ---
+
+MONGODB_URI=mongodb+srv://contact_db_user:uvBlKmasaM5lg3Pq@clusterseeds.25ibzrj.mongodb.net/?appName=ClusterSeeds
+MONGODB_DB=seed
+
+
+
+# --- Sécurité / JWT ---
+
+JWT_SECRET=JHJH8JH9JDSDjks82028JSNJAUBSHEANZNDAJZDNAJZDAIUZRUYAZUIRYAZY1R7AIUZRABNQSNBCW
+JWT_EXPIRES_IN=7d
+
+
+# --- Compte administrateur initial (créé automatiquement au premier lancement) ---
+
+# Rôle : superadmin (gestion des comptes et des contenus)
+
+ADMIN_EMAIL=flambel55@gmail.com
+ADMIN_PASSWORD=admin1234
+
+
+
+# --- E-mail (Nodemailer / SMTP) ---
+
+# Laisser SMTP_HOST vide pour désactiver l'envoi d'e-mails
+# (les messages restent sauvegardés en base).
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=dev@yaba-in.com
+SMTP_PASSWORD=tkeyiusxaxechyez
+SMTP_FROM=dev@yaba-in.com
+
+# Destinataires de secours des notifications de contact (séparés par des virgules).
+
+# Utilisés uniquement si aucun compte actif du back-office n'a "notifyContact" activé.
+
+CONTACT_RECIPIENT_EMAIL=dev@yaba-in.com
+
+
+# --- Cryptographie ---
+
+# Clé utilisée pour chiffrer les identifiants SMTP en base de données.
+
+# CRYPT_KEY=changez-moi-par-une-cle-secrete-longue-et-aleatoire
+CRYPT_KEY=HSDu5S4eDFStDZ3n45E4wRZE4xRZ2d10Z1fDF9ZEZv4Z35E4mRZj45ER86oZEiRZGGrHPKMtNZAIUgAEZYzIRU
+
+
+# URL publique du backend (utilisée dans les e-mails et les uploads)
+# PUBLIC_URL=http://localhost:3000
+PUBLIC_URL=https://seeds-backend.yaba-in.com
+
+
+# Répertoire persistant des fichiers uploadés (images, PDF, pièces jointes…)
+# En production (NODE_ENV=production) : chemin ABSOLU hors du dossier de
+# déploiement pour survivre aux redéploiements. Par défaut :
+# UPLOAD_DI=/home/u505661520/public_html/seeds/uploads
+UPLOAD_DIR=/home/yabain/public_html/seedsUploads
+
+# En développement : relatif au dossier du projet.
+UPLOAD_DIR_LOCAL=uploads
+
+
+# --- Identité des e-mails d'authentification ---
+# Le logo doit être une URL publique absolue. Laissez un réseau vide pour masquer son icône.
+EMAIL_LOGO_URL=https://static.wixstatic.com/media/3cf113_4f6cf417b6d94a78acd44dc8ed59c88a~mv2.png/v1/fill/w_352,h_95,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/3cf113_4f6cf417b6d94a78acd44dc8ed59c88a~mv2.png
+
+EMAIL_SOCIAL_FACEBOOK=https://www.facebook.com/seedsunleash
+EMAIL_SOCIAL_INSTAGRAM=
+EMAIL_SOCIAL_LINKEDIN=https://www.linkedin.com/in/seedsunleash
+EMAIL_SOCIAL_TWITTER=https://x.com/seedsunleash
+EMAIL_SOCIAL_YOUTUBE=https://www.youtube.com/@seedsunleash
+
+GOOGLE_CLIENT_ID=569864138356-90lu7hrd2n564gm3v4e3unqkg4t2l9u5.apps.googleusercontent.com
