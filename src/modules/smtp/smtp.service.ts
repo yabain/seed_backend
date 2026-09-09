@@ -99,11 +99,14 @@ export class SmtpService {
       emailForAlert: doc.emailForAlert || '',
     };
 
-    if (!dbConfig.smtpHost?.trim()) {
+    if (!dbConfig.smtpHost?.trim() || !dbConfig.smtpUser || !dbConfig.smtpPassword) {
       const envConfig = this.getEnvSmtpData();
       if (envConfig) {
+        const reason = !dbConfig.smtpHost?.trim()
+          ? 'hôte manquant en base'
+          : 'identifiants manquants en base';
         this.logger.log(
-          'Configuration SMTP chargée depuis le fichier .env (hôte manquant en base).',
+          `Configuration SMTP chargée depuis le fichier .env (${reason}).`,
         );
         return envConfig;
       }

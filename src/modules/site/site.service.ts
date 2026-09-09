@@ -54,7 +54,9 @@ const DEFAULT_CONFIG = {
     resources: true,
     programs: true,
     partners: true,
-    donations: false,
+    events: true,
+    team: true,
+    donations: true,
   },
   landingSections: {
     events: { eyebrow: 'Événements', title: 'Nos rendez-vous', description: 'Retrouvez nos événements à venir et passés.', buttonLabel: '' },
@@ -94,6 +96,29 @@ export class SiteService {
       if (current === undefined || current === null) {
         config.set(key, typeof value === 'object' ? { ...value } : value);
         changed = true;
+      } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        // Rétro-compatibilité : les configs existantes peuvent être privées de
+        // clés imbriquées ajoutées ultérieurement (ex. `segments.donations`).
+        // On fusionne chaque objet imbriqué avec ses valeurs par défaut pour
+        // garantir que toutes les clés attendues sont présentes.
+        const merged: Record<string, unknown> = {
+          ...value,
+          ...((current as Record<string, unknown>) ?? {}),
+        };
+        let nestedChanged = false;
+        for (const [nestedKey, nestedDefault] of Object.entries(value as Record<string, unknown>)) {
+          if (merged[nestedKey] === undefined || merged[nestedKey] === null) {
+            merged[nestedKey] =
+              typeof nestedDefault === 'object' && nestedDefault !== null
+                ? { ...nestedDefault }
+                : nestedDefault;
+            nestedChanged = true;
+          }
+        }
+        if (nestedChanged) {
+          config.set(key, merged);
+          changed = true;
+        }
       }
     }
     if (changed) {

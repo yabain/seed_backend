@@ -76,6 +76,7 @@ export class SiteConfig {
       partners: { type: Boolean, default: true },
       events: { type: Boolean, default: true },
       team: { type: Boolean, default: true },
+      donations: { type: Boolean, default: true },
     },
     default: {},
   })
@@ -86,6 +87,7 @@ export class SiteConfig {
     partners: boolean;
     events: boolean;
     team: boolean;
+    donations: boolean;
   };
 
   @Prop({
