@@ -24,6 +24,10 @@ export class CreateProgramDto {
 
   @IsOptional()
   @IsString()
+  content?: string;
+
+  @IsOptional()
+  @IsString()
   visual?: string;
 
   @IsOptional()

@@ -66,7 +66,7 @@ CRYPT_KEY=HSDu5S4eDFStDZ3n45E4wRZE4xRZ2d10Z1fDF9ZEZv4Z35E4mRZj45ER86oZEiRZGGrHPK
 
 # URL publique du backend (utilisée dans les e-mails et les uploads)
 # PUBLIC_URL=http://localhost:3000
-PUBLIC_URL=https://asfh.cm
+PUBLIC_URL=https://backend.asfh.cm
 
 
 # Répertoire persistant des fichiers uploadés (images, PDF, pièces jointes…)

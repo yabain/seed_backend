@@ -30,6 +30,7 @@ export class ProgramsController {
     return this.programsService.findAll(query);
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.programsService.findOne(id);

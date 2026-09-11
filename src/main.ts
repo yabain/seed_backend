@@ -12,6 +12,17 @@ async function bootstrap() {
 
   app.setGlobalPrefix(process.env.API_PREFIX ?? 'api');
 
+  // Désactiver la mise en cache HTTP des réponses API (évite les données obsolètes sur navigateurs et proxys)
+  app.use((req: any, res: any, next: any) => {
+    if (!req.path?.startsWith('/uploads')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+    }
+    next();
+  });
+
   app.use(cookieParser());
 
   // Fichiers uploadés : répertoire persistant (hors dossier de déploiement).

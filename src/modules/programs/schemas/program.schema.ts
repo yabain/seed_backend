@@ -18,6 +18,9 @@ export class Program {
   description: string;
 
   @Prop({ default: '' })
+  content: string;
+
+  @Prop({ default: '' })
   visual: string;
 
   @Prop({ default: '' })
