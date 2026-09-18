@@ -1,4 +1,6 @@
 import {
+  ArrayMaxSize,
+  IsArray,
   ValidateNested,
   IsBoolean,
   IsEmail,
@@ -10,6 +12,9 @@ import {
 import { Type } from 'class-transformer';
 
 const HEX_COLOR_REGEX = /^(#[0-9A-Fa-f]{3}|#[0-9A-Fa-f]{6}|)$/;
+
+/** Nombre maximum de sous-menus pour l'item « hover menu ». */
+export const HOVER_MENU_MAX_ITEMS = 4;
 
 export class SocialDto {
   @IsOptional()
@@ -78,6 +83,27 @@ export class LandingSectionsDto {
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) resources?: LandingSectionTextDto;
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) team?: LandingSectionTextDto;
   @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) donations?: LandingSectionTextDto;
+}
+
+export class HoverMenuItemDto {
+  @IsOptional() @IsString() @MaxLength(120) title?: string;
+  @IsOptional() @IsString() @MaxLength(300) description?: string;
+  /** URL externe (`http://` / `https://`) ou route interne (`/programs`). */
+  @IsOptional() @IsString() @MaxLength(1000) link?: string;
+}
+
+export class HoverMenuDto {
+  @IsOptional() @IsBoolean() enabled?: boolean;
+  @IsOptional() @IsString() @MaxLength(120) title?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(HOVER_MENU_MAX_ITEMS, {
+    message: `Maximum ${HOVER_MENU_MAX_ITEMS} sous-menus sont autorisés.`,
+  })
+  @ValidateNested({ each: true })
+  @Type(() => HoverMenuItemDto)
+  items?: HoverMenuItemDto[];
 }
 
 export class UpdateSiteConfigDto {
@@ -158,4 +184,9 @@ export class UpdateSiteConfigDto {
   @ValidateNested()
   @Type(() => LandingSectionsDto)
   landingSections?: LandingSectionsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HoverMenuDto)
+  hoverMenu?: HoverMenuDto;
 }

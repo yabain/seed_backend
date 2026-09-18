@@ -2,8 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { SiteConfig, SiteConfigDocument } from './schemas/site-config.schema';
-import { UpdateSiteConfigDto } from './dto/update-site-config.dto';
+import { SiteConfig, SiteConfigDocument, HoverMenu } from './schemas/site-config.schema';
+import { HOVER_MENU_MAX_ITEMS, UpdateSiteConfigDto } from './dto/update-site-config.dto';
 import { resolvePublicMediaUrl } from '../../utils/public-media-url.util';
 
 const MEDIA_KEYS: readonly string[] = ['logo', 'favicon', 'ogImage'];
@@ -67,6 +67,11 @@ const DEFAULT_CONFIG = {
     team: { eyebrow: 'Notre équipe', title: 'Les personnes qui nous font avancer', description: 'Découvrez les membres engagés au service de nos missions.', buttonLabel: '' },
     donations: { eyebrow: 'Faire un don', title: 'Contribuez à notre mission', description: 'Soutenez nos projets en choisissant une méthode de paiement ci-dessous.', buttonLabel: 'Faire un don' },
   },
+  hoverMenu: {
+    enabled: false,
+    title: '',
+    items: [],
+  },
 };
 
 @Injectable()
@@ -83,6 +88,23 @@ export class SiteService {
     return resolvePublicMediaUrl(url, base);
   }
 
+  /**
+   * Copie profonde d'une valeur par défaut. Les tableaux sont recopiés
+   * explicitement : `{ ...tableau }` produirait un objet et non un tableau, ce
+   * qui corromprait les valeurs par défaut de type liste (ex. `hoverMenu.items`).
+   */
+  private cloneDefault<T>(value: T): T {
+    if (Array.isArray(value)) {
+      return value.map((entry) => this.cloneDefault(entry)) as unknown as T;
+    }
+    if (typeof value === 'object' && value !== null) {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entry]) => [key, this.cloneDefault(entry)]),
+      ) as T;
+    }
+    return value;
+  }
+
   private async getOrCreate(): Promise<SiteConfigDocument> {
     let config = await this.siteConfigModel.findOne().sort({ createdAt: 1 }).exec();
 
@@ -94,7 +116,7 @@ export class SiteService {
     for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
       const current = config.get(key);
       if (current === undefined || current === null) {
-        config.set(key, typeof value === 'object' ? { ...value } : value);
+        config.set(key, this.cloneDefault(value));
         changed = true;
       } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         // Rétro-compatibilité : les configs existantes peuvent être privées de
@@ -108,10 +130,7 @@ export class SiteService {
         let nestedChanged = false;
         for (const [nestedKey, nestedDefault] of Object.entries(value as Record<string, unknown>)) {
           if (merged[nestedKey] === undefined || merged[nestedKey] === null) {
-            merged[nestedKey] =
-              typeof nestedDefault === 'object' && nestedDefault !== null
-                ? { ...nestedDefault }
-                : nestedDefault;
+            merged[nestedKey] = this.cloneDefault(nestedDefault);
             nestedChanged = true;
           }
         }
@@ -141,6 +160,12 @@ export class SiteService {
 
     const config = await this.getOrCreate();
 
+    // Valeurs actuelles lues AVANT `compact(dto)` : `config.set` remplace
+    // l'objet imbriqué et réinitialise à leur valeur par défaut les clés
+    // absentes. Sans cela, une mise à jour partielle du menu (ex. simple bascule
+    // de visibilité) écraserait le titre et les sous-menus déjà enregistrés.
+    const previousHoverMenu = (config.get('hoverMenu') ?? {}) as Partial<HoverMenu>;
+
     config.set(this.compact(dto));
     if (dto.social) {
       config.set('social', {
@@ -161,6 +186,24 @@ export class SiteService {
         ...DEFAULT_CONFIG.landingSections,
         ...(config.landingSections ?? {}),
         ...dto.landingSections,
+      });
+    }
+    if (dto.hoverMenu) {
+      // Le menu est remplacé en bloc (et non fusionné entrée par entrée) : la
+      // suppression d'un sous-menu doit être persistée. Les clés non transmises
+      // reprennent leur valeur précédente. La limite de 4 entrées est également
+      // appliquée ici, en filet de sécurité du DTO.
+      const items = (dto.hoverMenu.items ?? previousHoverMenu.items ?? [])
+        .slice(0, HOVER_MENU_MAX_ITEMS)
+        .map((item) => ({
+          title: item.title ?? '',
+          description: item.description ?? '',
+          link: (item.link ?? '').trim(),
+        }));
+      config.set('hoverMenu', {
+        enabled: dto.hoverMenu.enabled ?? previousHoverMenu.enabled ?? false,
+        title: dto.hoverMenu.title ?? previousHoverMenu.title ?? '',
+        items,
       });
     }
     await config.save();
@@ -202,6 +245,14 @@ export class SiteService {
     if (dto.landingSections && Object.values(dto.landingSections).some((section) =>
       section && Object.values(section).some((value) => typeof value === 'string'),
     )) {
+      return true;
+    }
+    if (
+      dto.hoverMenu &&
+      (typeof dto.hoverMenu.enabled === 'boolean' ||
+        (dto.hoverMenu.title ?? '').trim().length > 0 ||
+        (dto.hoverMenu.items?.length ?? 0) > 0)
+    ) {
       return true;
     }
     return false;

@@ -3,6 +3,34 @@ import { HydratedDocument } from 'mongoose';
 
 export type SiteConfigDocument = HydratedDocument<SiteConfig>;
 
+/**
+ * Sous-menu de l'item « hover menu » de la navigation principale.
+ * `_id: false` : ces entrées sont éditées par index côté administration, un
+ * identifiant généré n'apporterait rien et alourdirait la charge utile.
+ */
+@Schema({ _id: false })
+export class HoverMenuItem {
+  /** Titre affiché en gras avec la couleur primaire du site. */
+  @Prop({ default: '' })
+  title: string;
+
+  /** Texte descriptif affiché sous le titre. */
+  @Prop({ default: '' })
+  description: string;
+
+  /** URL externe (`http://` / `https://`) ou route interne (`/programs`). */
+  @Prop({ default: '' })
+  link: string;
+}
+
+export const HoverMenuItemSchema = SchemaFactory.createForClass(HoverMenuItem);
+
+export interface HoverMenu {
+  enabled: boolean;
+  title: string;
+  items: HoverMenuItem[];
+}
+
 @Schema({
   timestamps: true,
   collection: 'site_config',
@@ -103,6 +131,20 @@ export class SiteConfig {
     default: {},
   })
   landingSections: Record<string, { eyebrow: string; title: string; description: string; buttonLabel: string }>;
+
+  /**
+   * Item de menu déroulant (« hover menu ») de la navigation principale :
+   * un titre + jusqu'à 4 sous-menus. `enabled` pilote sa visibilité.
+   */
+  @Prop({
+    type: {
+      enabled: { type: Boolean, default: false },
+      title: { type: String, default: '' },
+      items: { type: [HoverMenuItemSchema], default: [] },
+    },
+    default: {},
+  })
+  hoverMenu: HoverMenu;
 }
 
 export const SiteConfigSchema = SchemaFactory.createForClass(SiteConfig);

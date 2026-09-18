@@ -87,6 +87,7 @@ export class SeedService implements OnModuleInit {
       phone: '',
       email: '',
       social: {},
+      hoverMenu: { enabled: false, title: '', items: [] },
     });
     this.logger.log('✅ Configuration du site créée');
   }
