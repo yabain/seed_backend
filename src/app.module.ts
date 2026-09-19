@@ -34,6 +34,7 @@ import { VideoHighlightSectionModule } from './modules/video-highlight-section/v
 import { TeamModule } from './modules/team/team.module';
 import { DonationsModule } from './modules/donations/donations.module';
 import { ImpactsModule } from './modules/impacts/impacts.module';
+import { OriziaModule } from './modules/orizia/orizia.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -74,6 +75,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     TeamModule,
     DonationsModule,
     ImpactsModule,
+    OriziaModule,
     SeedModule,
   ],
   controllers: [AppController],
