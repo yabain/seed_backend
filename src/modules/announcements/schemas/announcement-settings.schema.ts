@@ -1,7 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-export type AnnouncementSettingsDocument = HydratedDocument<AnnouncementSettings>;
+export type AnnouncementSettingsDocument =
+  HydratedDocument<AnnouncementSettings>;
 
 @Schema({
   timestamps: true,
@@ -15,9 +16,8 @@ export class AnnouncementSettings {
   footerHtml!: string;
 }
 
-export const AnnouncementSettingsSchema = SchemaFactory.createForClass(
-  AnnouncementSettings,
-);
+export const AnnouncementSettingsSchema =
+  SchemaFactory.createForClass(AnnouncementSettings);
 
 AnnouncementSettingsSchema.set('toJSON', {
   transform: (_doc, ret) => {

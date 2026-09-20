@@ -27,4 +27,5 @@ export class DonationMethod {
   order: number;
 }
 
-export const DonationMethodSchema = SchemaFactory.createForClass(DonationMethod);
+export const DonationMethodSchema =
+  SchemaFactory.createForClass(DonationMethod);

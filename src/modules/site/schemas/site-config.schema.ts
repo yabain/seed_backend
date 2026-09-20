@@ -31,6 +31,19 @@ export interface HoverMenu {
   items: HoverMenuItem[];
 }
 
+export type OriziaReasoningLevel = 'low' | 'medium' | 'high';
+
+export interface OriziaSiteConfig {
+  enabled: boolean;
+  visible: boolean;
+  logo: string;
+  welcomeImage: string;
+  /** Clé OpenRouter chiffrée en base. */
+  openRouterApiKey: string;
+  temperature: number;
+  reasoningLevel: OriziaReasoningLevel;
+}
+
 @Schema({
   timestamps: true,
   collection: 'site_config',
@@ -120,17 +133,55 @@ export class SiteConfig {
 
   @Prop({
     type: {
-      events: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
-      news: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
-      programs: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
-      partners: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
-      resources: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
-      team: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
-      donations: { eyebrow: { type: String, default: '' }, title: { type: String, default: '' }, description: { type: String, default: '' }, buttonLabel: { type: String, default: '' } },
+      events: {
+        eyebrow: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+      },
+      news: {
+        eyebrow: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+      },
+      programs: {
+        eyebrow: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+      },
+      partners: {
+        eyebrow: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+      },
+      resources: {
+        eyebrow: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+      },
+      team: {
+        eyebrow: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+      },
+      donations: {
+        eyebrow: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+      },
     },
     default: {},
   })
-  landingSections: Record<string, { eyebrow: string; title: string; description: string; buttonLabel: string }>;
+  landingSections: Record<
+    string,
+    { eyebrow: string; title: string; description: string; buttonLabel: string }
+  >;
 
   /**
    * Item de menu déroulant (« hover menu ») de la navigation principale :
@@ -145,6 +196,24 @@ export class SiteConfig {
     default: {},
   })
   hoverMenu: HoverMenu;
+
+  @Prop({
+    type: {
+      enabled: { type: Boolean, default: true },
+      visible: { type: Boolean, default: true },
+      logo: { type: String, default: '' },
+      welcomeImage: { type: String, default: '' },
+      openRouterApiKey: { type: String, default: '' },
+      temperature: { type: Number, default: 0.7 },
+      reasoningLevel: {
+        type: String,
+        enum: ['low', 'medium', 'high'],
+        default: 'medium',
+      },
+    },
+    default: {},
+  })
+  orizia: OriziaSiteConfig;
 }
 
 export const SiteConfigSchema = SchemaFactory.createForClass(SiteConfig);

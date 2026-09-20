@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { NewsCategoryService } from './news-category.service';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { CreateNewsCategoryDto, UpdateNewsCategoryDto } from './dto/news-category.dto';
+import {
+  CreateNewsCategoryDto,
+  UpdateNewsCategoryDto,
+} from './dto/news-category.dto';
 
 @Roles('admin', 'superadmin')
 @Controller('news-categories')

@@ -99,7 +99,11 @@ export class SmtpService {
       emailForAlert: doc.emailForAlert || '',
     };
 
-    if (!dbConfig.smtpHost?.trim() || !dbConfig.smtpUser || !dbConfig.smtpPassword) {
+    if (
+      !dbConfig.smtpHost?.trim() ||
+      !dbConfig.smtpUser ||
+      !dbConfig.smtpPassword
+    ) {
       const envConfig = this.getEnvSmtpData();
       if (envConfig) {
         const reason = !dbConfig.smtpHost?.trim()

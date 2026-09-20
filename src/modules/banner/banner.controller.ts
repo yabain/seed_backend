@@ -1,9 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Put,
-} from '@nestjs/common';
+import { Body, Controller, Get, Put } from '@nestjs/common';
 import { BannerService } from './banner.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UpdateBannerDto } from './dto/update-banner.dto';

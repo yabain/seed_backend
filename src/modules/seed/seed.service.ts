@@ -77,12 +77,10 @@ export class SeedService implements OnModuleInit {
     await this.siteConfigModel.create({
       orgName: 'Organisation',
       tagline: '',
-      description:
-        '',
+      description: '',
       logo: '',
       heroTitle: 'Construisons un avenir durable et solidaire',
-      heroSubtitle:
-        '',
+      heroSubtitle: '',
       address: '',
       phone: '',
       email: '',
@@ -159,8 +157,7 @@ export class SeedService implements OnModuleInit {
       {
         title: 'Présentation institutionnelle',
         category: 'Brochures',
-        description:
-          'Découvrez notre vision et nos domaines d’intervention.',
+        description: 'Découvrez notre vision et nos domaines d’intervention.',
         fileUrl: '',
         fileName: 'presentation-institutionnelle.pdf',
         fileType: 'application/pdf',
@@ -256,8 +253,7 @@ export class SeedService implements OnModuleInit {
         name: 'Yaba-In SARL',
         logo: '',
         website: 'https://yaba-in.com',
-        description:
-          'Entreprise technologique et partenaire technique.',
+        description: 'Entreprise technologique et partenaire technique.',
         order: 1,
         isActive: true,
       },

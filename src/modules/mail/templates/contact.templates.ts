@@ -32,7 +32,9 @@ export interface ContactTemplateOptions {
  * E-mail de notification envoyé aux administrateurs lorsqu'un
  * visiteur soumet le formulaire de contact.
  */
-export function contactNotificationTemplate(options: ContactTemplateOptions): string {
+export function contactNotificationTemplate(
+  options: ContactTemplateOptions,
+): string {
   const { payload, branding, colors } = options;
   const orgName = branding?.orgName?.trim() || 'Organisation';
   const receivedAt = (payload.createdAt ?? new Date()).toLocaleString('fr-FR', {
@@ -83,7 +85,9 @@ export function contactNotificationTemplate(options: ContactTemplateOptions): st
  * E-mail de confirmation automatiquement envoyé au visiteur qui vient
  * de soumettre le formulaire de contact.
  */
-export function contactConfirmationTemplate(options: ContactTemplateOptions): string {
+export function contactConfirmationTemplate(
+  options: ContactTemplateOptions,
+): string {
   const { payload, branding, colors } = options;
   const orgName = branding?.orgName?.trim() || 'Organisation';
   const recap = [

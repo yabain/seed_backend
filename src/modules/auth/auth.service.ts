@@ -675,7 +675,10 @@ export class AuthService {
     if (!tokenInfo.sub || !tokenInfo.email) {
       throw new UnauthorizedException('Jeton Google invalide.');
     }
-    if (tokenInfo.email_verified === false || tokenInfo.email_verified === 'false') {
+    if (
+      tokenInfo.email_verified === false ||
+      tokenInfo.email_verified === 'false'
+    ) {
       throw new UnauthorizedException(
         'L’adresse e-mail Google n’est pas vérifiée.',
       );

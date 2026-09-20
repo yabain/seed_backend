@@ -1,10 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { StatsService } from './stats.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CreatePageViewDto } from './dto/create-page-view.dto';

@@ -347,7 +347,7 @@ export class UsersService {
         sanitized.name,
         sanitized.email,
         dto.password,
-        (dto.role ?? 'user') as UserRole,
+        dto.role ?? 'user',
         dto.siteUrl,
       );
     }

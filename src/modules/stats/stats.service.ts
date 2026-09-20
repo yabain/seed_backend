@@ -150,10 +150,7 @@ export class StatsService {
         ])
         .exec();
 
-      const buckets = new Map<
-        string,
-        { pageViews: number; visits: number }
-      >();
+      const buckets = new Map<string, { pageViews: number; visits: number }>();
       for (let i = 0; i < 24; i++) {
         const key = new Date(startMs + i * 3_600_000)
           .toISOString()
@@ -198,10 +195,7 @@ export class StatsService {
         ])
         .exec();
 
-      const buckets = new Map<
-        string,
-        { pageViews: number; visits: number }
-      >();
+      const buckets = new Map<string, { pageViews: number; visits: number }>();
       for (let i = 0; i < 12; i++) {
         const key = new Date(
           Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + i, 1),

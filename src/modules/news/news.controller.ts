@@ -43,7 +43,13 @@ export class NewsController {
   @Get('all')
   @Roles('admin', 'superadmin')
   findAll(
-    @Query() query: { page?: number; limit?: number; status?: string; search?: string },
+    @Query()
+    query: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      search?: string;
+    },
   ) {
     return this.newsService.findAll(query);
   }

@@ -2,11 +2,20 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { SiteConfig, SiteConfigDocument, HoverMenu } from './schemas/site-config.schema';
-import { HOVER_MENU_MAX_ITEMS, UpdateSiteConfigDto } from './dto/update-site-config.dto';
+import {
+  SiteConfig,
+  SiteConfigDocument,
+  HoverMenu,
+} from './schemas/site-config.schema';
+import {
+  HOVER_MENU_MAX_ITEMS,
+  UpdateSiteConfigDto,
+} from './dto/update-site-config.dto';
 import { resolvePublicMediaUrl } from '../../utils/public-media-url.util';
+import { CryptService } from '../crypt/crypt.service';
 
 const MEDIA_KEYS: readonly string[] = ['logo', 'favicon', 'ogImage'];
+const ORIZIA_MEDIA_KEYS: readonly string[] = ['logo', 'welcomeImage'];
 
 const COLOR_KEYS: readonly string[] = ['primaryColor', 'secondaryColor'];
 
@@ -59,18 +68,59 @@ const DEFAULT_CONFIG = {
     donations: true,
   },
   landingSections: {
-    events: { eyebrow: 'Événements', title: 'Nos rendez-vous', description: 'Retrouvez nos événements à venir et passés.', buttonLabel: '' },
-    news: { eyebrow: 'Actualités', title: 'Nos dernières nouvelles', description: 'Suivez notre actualité et nos réalisations.', buttonLabel: '' },
-    programs: { eyebrow: 'Nos actions', title: 'Programmes et projets actifs', description: 'Des initiatives concrètes portées avec nos partenaires.', buttonLabel: '' },
+    events: {
+      eyebrow: 'Événements',
+      title: 'Nos rendez-vous',
+      description: 'Retrouvez nos événements à venir et passés.',
+      buttonLabel: '',
+    },
+    news: {
+      eyebrow: 'Actualités',
+      title: 'Nos dernières nouvelles',
+      description: 'Suivez notre actualité et nos réalisations.',
+      buttonLabel: '',
+    },
+    programs: {
+      eyebrow: 'Nos actions',
+      title: 'Programmes et projets actifs',
+      description: 'Des initiatives concrètes portées avec nos partenaires.',
+      buttonLabel: '',
+    },
     partners: { eyebrow: '', title: '', description: '', buttonLabel: '' },
-    resources: { eyebrow: 'Ressources', title: 'Centre de ressources', description: 'Téléchargez nos rapports, guides et documents institutionnels.', buttonLabel: '' },
-    team: { eyebrow: 'Notre équipe', title: 'Les personnes qui nous font avancer', description: 'Découvrez les membres engagés au service de nos missions.', buttonLabel: '' },
-    donations: { eyebrow: 'Faire un don', title: 'Contribuez à notre mission', description: 'Soutenez nos projets en choisissant une méthode de paiement ci-dessous.', buttonLabel: 'Faire un don' },
+    resources: {
+      eyebrow: 'Ressources',
+      title: 'Centre de ressources',
+      description:
+        'Téléchargez nos rapports, guides et documents institutionnels.',
+      buttonLabel: '',
+    },
+    team: {
+      eyebrow: 'Notre équipe',
+      title: 'Les personnes qui nous font avancer',
+      description: 'Découvrez les membres engagés au service de nos missions.',
+      buttonLabel: '',
+    },
+    donations: {
+      eyebrow: 'Faire un don',
+      title: 'Contribuez à notre mission',
+      description:
+        'Soutenez nos projets en choisissant une méthode de paiement ci-dessous.',
+      buttonLabel: 'Faire un don',
+    },
   },
   hoverMenu: {
     enabled: false,
     title: '',
     items: [],
+  },
+  orizia: {
+    enabled: true,
+    visible: true,
+    logo: '',
+    welcomeImage: '',
+    openRouterApiKey: '',
+    temperature: 0.7,
+    reasoningLevel: 'medium' as 'low' | 'medium' | 'high',
   },
 };
 
@@ -80,6 +130,7 @@ export class SiteService {
     @InjectModel(SiteConfig.name)
     private readonly siteConfigModel: Model<SiteConfigDocument>,
     private readonly configService: ConfigService,
+    private readonly cryptService: CryptService,
   ) {}
 
   resolveMediaUrl(url?: string): string {
@@ -99,14 +150,20 @@ export class SiteService {
     }
     if (typeof value === 'object' && value !== null) {
       return Object.fromEntries(
-        Object.entries(value).map(([key, entry]) => [key, this.cloneDefault(entry)]),
+        Object.entries(value).map(([key, entry]) => [
+          key,
+          this.cloneDefault(entry),
+        ]),
       ) as T;
     }
     return value;
   }
 
   private async getOrCreate(): Promise<SiteConfigDocument> {
-    let config = await this.siteConfigModel.findOne().sort({ createdAt: 1 }).exec();
+    const config = await this.siteConfigModel
+      .findOne()
+      .sort({ createdAt: 1 })
+      .exec();
 
     if (!config) {
       return this.siteConfigModel.create({ ...DEFAULT_CONFIG });
@@ -118,7 +175,11 @@ export class SiteService {
       if (current === undefined || current === null) {
         config.set(key, this.cloneDefault(value));
         changed = true;
-      } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      } else if (
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value)
+      ) {
         // Rétro-compatibilité : les configs existantes peuvent être privées de
         // clés imbriquées ajoutées ultérieurement (ex. `segments.donations`).
         // On fusionne chaque objet imbriqué avec ses valeurs par défaut pour
@@ -128,7 +189,9 @@ export class SiteService {
           ...((current as Record<string, unknown>) ?? {}),
         };
         let nestedChanged = false;
-        for (const [nestedKey, nestedDefault] of Object.entries(value as Record<string, unknown>)) {
+        for (const [nestedKey, nestedDefault] of Object.entries(
+          value as Record<string, unknown>,
+        )) {
           if (merged[nestedKey] === undefined || merged[nestedKey] === null) {
             merged[nestedKey] = this.cloneDefault(nestedDefault);
             nestedChanged = true;
@@ -148,7 +211,15 @@ export class SiteService {
 
   async getPublicConfig(): Promise<SiteConfig> {
     const config = await this.getOrCreate();
-    return config.toObject();
+    const plain = config.toObject() as SiteConfig & {
+      orizia?: { openRouterApiKey?: string };
+    };
+    if (plain.orizia) {
+      plain.orizia.openRouterApiKey = '';
+      plain.orizia.logo = this.resolveMediaUrl(plain.orizia.logo);
+      plain.orizia.welcomeImage = this.resolveMediaUrl(plain.orizia.welcomeImage);
+    }
+    return plain;
   }
 
   async update(dto: UpdateSiteConfigDto): Promise<SiteConfig> {
@@ -164,7 +235,8 @@ export class SiteService {
     // l'objet imbriqué et réinitialise à leur valeur par défaut les clés
     // absentes. Sans cela, une mise à jour partielle du menu (ex. simple bascule
     // de visibilité) écraserait le titre et les sous-menus déjà enregistrés.
-    const previousHoverMenu = (config.get('hoverMenu') ?? {}) as Partial<HoverMenu>;
+    const previousHoverMenu = (config.get('hoverMenu') ??
+      {}) as Partial<HoverMenu>;
 
     config.set(this.compact(dto));
     if (dto.social) {
@@ -206,12 +278,225 @@ export class SiteService {
         items,
       });
     }
+    if (dto.orizia) {
+      const previousOrizia =
+        (config.get('orizia') as {
+          enabled?: boolean;
+          visible?: boolean;
+          logo?: string;
+          welcomeImage?: string;
+          openRouterApiKey?: string;
+          temperature?: number;
+          reasoningLevel?: 'low' | 'medium' | 'high';
+        }) ?? {};
+
+      const nextTemperature =
+        typeof dto.orizia.temperature === 'number' &&
+        Number.isFinite(dto.orizia.temperature)
+          ? Math.max(0, Math.min(2, Number(dto.orizia.temperature.toFixed(2))))
+          : (previousOrizia.temperature ?? DEFAULT_CONFIG.orizia.temperature);
+
+      const nextReasoning = (dto.orizia.reasoningLevel ?? previousOrizia.reasoningLevel ?? 'medium')
+        .toString()
+        .trim()
+        .toLowerCase() as 'low' | 'medium' | 'high';
+
+      const normalizedReasoning: 'low' | 'medium' | 'high' =
+        nextReasoning === 'low' || nextReasoning === 'high'
+          ? nextReasoning
+          : 'medium';
+
+      let encryptedApiKey = previousOrizia.openRouterApiKey ?? '';
+      if (dto.orizia.openRouterApiKey !== undefined) {
+        const rawKey = String(dto.orizia.openRouterApiKey ?? '').trim();
+        encryptedApiKey = rawKey
+          ? this.cryptService.encrypt(rawKey)
+          : '';
+      }
+
+      config.set('orizia', {
+        enabled: dto.orizia.enabled ?? previousOrizia.enabled ?? true,
+        visible: dto.orizia.visible ?? previousOrizia.visible ?? true,
+        logo: (dto.orizia.logo ?? previousOrizia.logo ?? '').trim(),
+        welcomeImage: (dto.orizia.welcomeImage ?? previousOrizia.welcomeImage ?? '').trim(),
+        openRouterApiKey: encryptedApiKey,
+        temperature: nextTemperature,
+        reasoningLevel: normalizedReasoning,
+      });
+    }
     await config.save();
-    return config.toObject();
+    const plain = config.toObject() as SiteConfig & {
+      orizia?: { openRouterApiKey?: string };
+    };
+    if (plain.orizia) {
+      plain.orizia.openRouterApiKey = '';
+      plain.orizia.logo = this.resolveMediaUrl(plain.orizia.logo);
+      plain.orizia.welcomeImage = this.resolveMediaUrl(plain.orizia.welcomeImage);
+    }
+    return plain;
+  }
+
+  async getOriziaSettingsForAdmin(): Promise<{
+    enabled: boolean;
+    visible: boolean;
+    logo: string;
+    welcomeImage: string;
+    openRouterApiKey: string;
+    temperature: number;
+    reasoningLevel: 'low' | 'medium' | 'high';
+  }> {
+    const config = await this.getOrCreate();
+    const orizia =
+      (config.get('orizia') as {
+        enabled?: boolean;
+        visible?: boolean;
+        logo?: string;
+        welcomeImage?: string;
+        openRouterApiKey?: string;
+        temperature?: number;
+        reasoningLevel?: 'low' | 'medium' | 'high';
+      }) ?? {};
+
+    let apiKey = '';
+    if (orizia.openRouterApiKey) {
+      try {
+        apiKey = this.cryptService.decrypt(orizia.openRouterApiKey);
+      } catch {
+        apiKey = '';
+      }
+    }
+
+    return {
+      enabled: orizia.enabled ?? true,
+      visible: orizia.visible ?? true,
+      logo: this.resolveMediaUrl(orizia.logo),
+      welcomeImage: this.resolveMediaUrl(orizia.welcomeImage),
+      openRouterApiKey: apiKey,
+      temperature:
+        typeof orizia.temperature === 'number' && Number.isFinite(orizia.temperature)
+          ? Math.max(0, Math.min(2, Number(orizia.temperature.toFixed(2))))
+          : 0.7,
+      reasoningLevel:
+        orizia.reasoningLevel === 'low' || orizia.reasoningLevel === 'high'
+          ? orizia.reasoningLevel
+          : 'medium',
+    };
+  }
+
+  async updateOriziaSettings(payload: {
+    enabled?: boolean;
+    visible?: boolean;
+    logo?: string;
+    welcomeImage?: string;
+    openRouterApiKey?: string;
+    temperature?: number;
+    reasoningLevel?: 'low' | 'medium' | 'high';
+  }): Promise<{
+    enabled: boolean;
+    visible: boolean;
+    logo: string;
+    welcomeImage: string;
+    openRouterApiKey: string;
+    temperature: number;
+    reasoningLevel: 'low' | 'medium' | 'high';
+  }> {
+    const config = await this.getOrCreate();
+    const current =
+      (config.get('orizia') as {
+        enabled?: boolean;
+        visible?: boolean;
+        logo?: string;
+        welcomeImage?: string;
+        openRouterApiKey?: string;
+        temperature?: number;
+        reasoningLevel?: 'low' | 'medium' | 'high';
+      }) ?? {};
+
+    const nextTemperature =
+      typeof payload.temperature === 'number' && Number.isFinite(payload.temperature)
+        ? Math.max(0, Math.min(2, Number(payload.temperature.toFixed(2))))
+        : (current.temperature ?? 0.7);
+
+    const nextReasoningRaw = (payload.reasoningLevel ?? current.reasoningLevel ?? 'medium')
+      .toString()
+      .trim()
+      .toLowerCase();
+    const nextReasoning: 'low' | 'medium' | 'high' =
+      nextReasoningRaw === 'low' || nextReasoningRaw === 'high'
+        ? (nextReasoningRaw as 'low' | 'high')
+        : 'medium';
+
+    let encryptedKey = current.openRouterApiKey ?? '';
+    if (payload.openRouterApiKey !== undefined) {
+      const raw = String(payload.openRouterApiKey ?? '').trim();
+      encryptedKey = raw ? this.cryptService.encrypt(raw) : '';
+    }
+
+    config.set('orizia', {
+      enabled: payload.enabled ?? current.enabled ?? true,
+      visible: payload.visible ?? current.visible ?? true,
+      logo: (payload.logo ?? current.logo ?? '').trim(),
+      welcomeImage: (payload.welcomeImage ?? current.welcomeImage ?? '').trim(),
+      openRouterApiKey: encryptedKey,
+      temperature: nextTemperature,
+      reasoningLevel: nextReasoning,
+    });
+
+    await config.save();
+    return this.getOriziaSettingsForAdmin();
+  }
+
+  async getOriziaRuntimeConfig(): Promise<{
+    enabled: boolean;
+    visible: boolean;
+    logo: string;
+    welcomeImage: string;
+    openRouterApiKey: string;
+    temperature: number;
+    reasoningLevel: 'low' | 'medium' | 'high';
+  }> {
+    const config = await this.getOrCreate();
+    const orizia =
+      (config.get('orizia') as {
+        enabled?: boolean;
+        visible?: boolean;
+        logo?: string;
+        welcomeImage?: string;
+        openRouterApiKey?: string;
+        temperature?: number;
+        reasoningLevel?: 'low' | 'medium' | 'high';
+      }) ?? {};
+
+    let apiKey = '';
+    if (orizia.openRouterApiKey) {
+      try {
+        apiKey = this.cryptService.decrypt(orizia.openRouterApiKey);
+      } catch {
+        apiKey = '';
+      }
+    }
+
+    return {
+      enabled: orizia.enabled ?? true,
+      visible: orizia.visible ?? true,
+      logo: this.resolveMediaUrl(orizia.logo),
+      welcomeImage: this.resolveMediaUrl(orizia.welcomeImage),
+      openRouterApiKey: apiKey,
+      temperature:
+        typeof orizia.temperature === 'number' && Number.isFinite(orizia.temperature)
+          ? Math.max(0, Math.min(2, Number(orizia.temperature.toFixed(2))))
+          : 0.7,
+      reasoningLevel:
+        orizia.reasoningLevel === 'low' || orizia.reasoningLevel === 'high'
+          ? orizia.reasoningLevel
+          : 'medium',
+    };
   }
 
   private hasMeaningfulPayload(dto: UpdateSiteConfigDto): boolean {
-    const entries = Object.entries(dto).filter(([, value]) => value !== undefined);
+    const entries = Object.entries(dto).filter(
+      ([, value]) => value !== undefined,
+    );
     const isReset =
       entries.length > 0 &&
       entries.every(
@@ -239,12 +524,20 @@ export class SiteService {
     ) {
       return true;
     }
-    if (dto.segments && Object.values(dto.segments).some((value) => typeof value === 'boolean')) {
+    if (
+      dto.segments &&
+      Object.values(dto.segments).some((value) => typeof value === 'boolean')
+    ) {
       return true;
     }
-    if (dto.landingSections && Object.values(dto.landingSections).some((section) =>
-      section && Object.values(section).some((value) => typeof value === 'string'),
-    )) {
+    if (
+      dto.landingSections &&
+      Object.values(dto.landingSections).some(
+        (section) =>
+          section &&
+          Object.values(section).some((value) => typeof value === 'string'),
+      )
+    ) {
       return true;
     }
     if (
@@ -254,6 +547,27 @@ export class SiteService {
         (dto.hoverMenu.items?.length ?? 0) > 0)
     ) {
       return true;
+    }
+    if (dto.orizia) {
+      if (
+        typeof dto.orizia.enabled === 'boolean' ||
+        typeof dto.orizia.visible === 'boolean' ||
+        typeof dto.orizia.temperature === 'number' ||
+        typeof dto.orizia.reasoningLevel === 'string'
+      ) {
+        return true;
+      }
+      if (
+        ORIZIA_MEDIA_KEYS.some((key) => {
+          const value = (dto.orizia as Record<string, unknown>)[key];
+          return typeof value === 'string';
+        })
+      ) {
+        return true;
+      }
+      if (typeof dto.orizia.openRouterApiKey === 'string') {
+        return true;
+      }
     }
     return false;
   }

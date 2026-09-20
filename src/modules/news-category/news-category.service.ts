@@ -1,8 +1,18 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, isValidObjectId } from 'mongoose';
-import { NewsCategory, NewsCategoryDocument } from './schemas/news-category.schema';
-import { CreateNewsCategoryDto, UpdateNewsCategoryDto } from './dto/news-category.dto';
+import {
+  NewsCategory,
+  NewsCategoryDocument,
+} from './schemas/news-category.schema';
+import {
+  CreateNewsCategoryDto,
+  UpdateNewsCategoryDto,
+} from './dto/news-category.dto';
 
 @Injectable()
 export class NewsCategoryService {
@@ -11,9 +21,14 @@ export class NewsCategoryService {
     private readonly newsCategoryModel: Model<NewsCategoryDocument>,
   ) {}
 
-  private async assertNameAvailable(name: string, excludeId?: string): Promise<void> {
+  private async assertNameAvailable(
+    name: string,
+    excludeId?: string,
+  ): Promise<void> {
     const existing = await this.newsCategoryModel
-      .findOne({ name: { $regex: new RegExp(`^${this.escapeRegExp(name)}$`, 'i') } })
+      .findOne({
+        name: { $regex: new RegExp(`^${this.escapeRegExp(name)}$`, 'i') },
+      })
       .exec();
     if (existing && existing._id.toString() !== excludeId) {
       throw new ConflictException('Cette catégorie existe déjà');
@@ -52,7 +67,9 @@ export class NewsCategoryService {
 
   async remove(id: string): Promise<{ deleted: boolean }> {
     const realId = this.ensureId(id);
-    const result = await this.newsCategoryModel.findByIdAndDelete(realId).exec();
+    const result = await this.newsCategoryModel
+      .findByIdAndDelete(realId)
+      .exec();
     if (!result) {
       throw new NotFoundException('Catégorie introuvable');
     }

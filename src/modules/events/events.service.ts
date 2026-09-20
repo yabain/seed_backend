@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron } from '@nestjs/schedule';
 import { Model, isValidObjectId } from 'mongoose';
@@ -30,7 +26,10 @@ export class EventsService {
     return id;
   }
 
-  private computeStatus(startDate: Date, endDate: Date): 'soon' | 'currently' | 'ended' {
+  private computeStatus(
+    startDate: Date,
+    endDate: Date,
+  ): 'soon' | 'currently' | 'ended' {
     const now = new Date();
     if (now < new Date(startDate)) return 'soon';
     if (now > new Date(endDate)) return 'ended';
@@ -46,7 +45,11 @@ export class EventsService {
         { $set: { status: 'soon' } },
       );
       await this.eventModel.updateMany(
-        { startDate: { $lte: now }, endDate: { $gte: now }, status: { $ne: 'currently' } },
+        {
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+          status: { $ne: 'currently' },
+        },
         { $set: { status: 'currently' } },
       );
       await this.eventModel.updateMany(
@@ -54,17 +57,19 @@ export class EventsService {
         { $set: { status: 'ended' } },
       );
     } catch (error) {
-      this.logger.error('Erreur lors de la mise à jour des statuts d\'événements', error);
+      this.logger.error(
+        "Erreur lors de la mise à jour des statuts d'événements",
+        error,
+      );
     }
   }
 
   async create(dto: CreateEventDto): Promise<Event> {
     const event = new this.eventModel({
       ...dto,
-      status: dto.status || this.computeStatus(
-        new Date(dto.startDate),
-        new Date(dto.endDate),
-      ),
+      status:
+        dto.status ||
+        this.computeStatus(new Date(dto.startDate), new Date(dto.endDate)),
     });
     return event.save();
   }
@@ -149,7 +154,9 @@ export class EventsService {
     const updateData: Record<string, unknown> = { ...dto };
 
     if (dto.startDate || dto.endDate) {
-      const startDate = dto.startDate ? new Date(dto.startDate) : existing.startDate;
+      const startDate = dto.startDate
+        ? new Date(dto.startDate)
+        : existing.startDate;
       const endDate = dto.endDate ? new Date(dto.endDate) : existing.endDate;
       if (!dto.status) {
         updateData.status = this.computeStatus(startDate, endDate);

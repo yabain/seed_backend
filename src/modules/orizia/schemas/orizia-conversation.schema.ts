@@ -7,20 +7,26 @@ export interface OriziaMessage {
   role: 'user' | 'assistant';
   content: string;
   createdAt: Date;
+  /** Identifiant du visiteur propriétaire (absent pour un utilisateur connecté). */
+  visitorId?: string;
 }
 
 /**
  * Conversation Orizia (assistant IA public de l'UdM).
  *
- * Deux régimes de conservation :
- * - **Visiteur non connecté** : `userId` absent → `expiresAt` est renseigné à
- *   `maintenant + ORIZIA_VISITOR_TTL_MINUTES` (60 min par défaut). L'index TTL de
- *   MongoDB supprime alors le document automatiquement : aucune conversation de
- *   visiteur ne subsiste au-delà de l'heure.
- * - **Utilisateur connecté** : `userId` renseigné → `expiresAt` reste `undefined`.
- *   Les documents dont le champ d'expiration n'est pas une date ne sont **jamais**
- *   supprimés par un index TTL : la conversation est donc conservée définitivement
- *   et rechargée à la connexion (scroll infini vers le haut).
+ * Deux régimes :
+ * - **Visiteur non connecté** : la conversation porte un `visitorId` — identifiant
+ *   unique **contenant la date du jour**, généré par le front et conservé dans le
+ *   `localStorage` du navigateur. Tant que l'identifiant est daté d'aujourd'hui,
+ *   le visiteur retrouve son fil en revenant sur le site (y compris après
+ *   actualisation). Un **cron quotidien à minuit** supprime toutes les
+ *   conversations de visiteurs (`userId` absent).
+ * - **Utilisateur connecté** : la conversation porte un `userId`, elle est
+ *   conservée durablement (aucun `visitorId`, jamais purgée par le cron).
+ *
+ * ⚠️ Aucun index TTL n'est utilisé ici : il supprimerait la conversation au bout
+ * d'un délai fixe, alors que la règle métier est « tout visiteur est purgé à
+ * minuit ». La purge est donc assurée par le cron (voir `OriziaService`).
  */
 @Schema({ timestamps: true, collection: 'orizia_conversations' })
 export class OriziaConversation {
@@ -30,9 +36,20 @@ export class OriziaConversation {
   @Prop({ required: true, default: 'visitor' })
   role: string;
 
-  /** Renseigné uniquement pour les visiteurs : voir la logique de TTL ci-dessus. */
-  @Prop({ type: Date, required: false, index: { expires: 0 } })
-  expiresAt?: Date;
+  /**
+   * Identifiant unique daté du visiteur, tel que fourni par le navigateur
+   * (`udm-AAAA-MM-JJ-<aléatoire>`). Sert de clé de reprise du fil.
+   */
+  @Prop({ required: false, index: true })
+  visitorId?: string;
+
+  /**
+   * Date (AAAA-MM-JJ) extraite du `visitorId`, utilisée par le cron de purge.
+   * Stockée séparément pour permettre une requête fiable même si le format de
+   * l'identifiant venait à évoluer.
+   */
+  @Prop({ required: false, index: true })
+  visitorDate?: string;
 
   @Prop({
     type: [
@@ -40,6 +57,9 @@ export class OriziaConversation {
         role: { type: String, enum: ['user', 'assistant'], required: true },
         content: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
+        // L'identifiant est porté par chaque message (question de l'utilisateur
+        // comme réponse de l'IA), comme demandé, en plus de la conversation.
+        visitorId: { type: String, required: false },
       },
     ],
     default: [],

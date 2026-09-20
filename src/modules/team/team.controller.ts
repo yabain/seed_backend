@@ -52,10 +52,7 @@ export class TeamController {
   }
 
   @Patch('sections/:id')
-  updateSection(
-    @Param('id') id: string,
-    @Body() dto: UpdateTeamSectionDto,
-  ) {
+  updateSection(@Param('id') id: string, @Body() dto: UpdateTeamSectionDto) {
     return this.teamService.updateSection(id, dto);
   }
 

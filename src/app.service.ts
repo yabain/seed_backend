@@ -8,8 +8,7 @@ export class AppService {
   getInfo() {
     return {
       name: 'API',
-      description:
-        'Plateforme web institutionnelle',
+      description: 'Plateforme web institutionnelle',
       version: '0.1.0',
       documentation: 'Voir le README.md pour la procédure de démarrage local.',
       status: 'online',

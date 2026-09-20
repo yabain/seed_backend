@@ -41,7 +41,13 @@ export class EventsController {
   @Get('all')
   @Roles('admin', 'superadmin')
   findAll(
-    @Query() query: { page?: number; limit?: number; search?: string; status?: string },
+    @Query()
+    query: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: string;
+    },
   ) {
     return this.eventsService.findAll(query);
   }

@@ -139,10 +139,7 @@ export class AnnouncementsService {
     const existing = await this.announcementModel.findById(id).exec();
     if (!existing) throw new NotFoundException('Annonce introuvable.');
 
-    if (
-      existing.status === 'sent' ||
-      existing.status === 'sending'
-    ) {
+    if (existing.status === 'sent' || existing.status === 'sending') {
       throw new BadRequestException(
         "Une annonce envoyée ou en cours d'envoi ne peut plus être modifiée.",
       );
@@ -154,15 +151,16 @@ export class AnnouncementsService {
       existing.recipientGroup = dto.recipientGroup as never;
     if (dto.customRecipients !== undefined)
       existing.customRecipients = dto.customRecipients;
-    if (dto.attachments !== undefined)
-      existing.attachments = dto.attachments as never;
+    if (dto.attachments !== undefined) existing.attachments = dto.attachments;
     if (dto.includeHeader !== undefined)
       existing.includeHeader = dto.includeHeader;
     if (dto.includeFooter !== undefined)
       existing.includeFooter = dto.includeFooter;
 
     await existing.save();
-    return this.sanitize(existing.toObject() as unknown as Record<string, unknown>);
+    return this.sanitize(
+      existing.toObject() as unknown as Record<string, unknown>,
+    );
   }
 
   async remove(id: string) {
@@ -274,15 +272,14 @@ export class AnnouncementsService {
   }
 
   async getStats() {
-    const [total, draft, scheduled, sending, sent, failed] =
-      await Promise.all([
-        this.announcementModel.countDocuments(),
-        this.announcementModel.countDocuments({ status: 'draft' }),
-        this.announcementModel.countDocuments({ status: 'scheduled' }),
-        this.announcementModel.countDocuments({ status: 'sending' }),
-        this.announcementModel.countDocuments({ status: 'sent' }),
-        this.announcementModel.countDocuments({ status: 'failed' }),
-      ]);
+    const [total, draft, scheduled, sending, sent, failed] = await Promise.all([
+      this.announcementModel.countDocuments(),
+      this.announcementModel.countDocuments({ status: 'draft' }),
+      this.announcementModel.countDocuments({ status: 'scheduled' }),
+      this.announcementModel.countDocuments({ status: 'sending' }),
+      this.announcementModel.countDocuments({ status: 'sent' }),
+      this.announcementModel.countDocuments({ status: 'failed' }),
+    ]);
 
     return { total, draft, scheduled, sending, sent, failed };
   }
@@ -312,19 +309,15 @@ export class AnnouncementsService {
         current.id,
         {
           headerHtml:
-            dto.headerHtml !== undefined
-              ? dto.headerHtml
-              : current.headerHtml,
+            dto.headerHtml !== undefined ? dto.headerHtml : current.headerHtml,
           footerHtml:
-            dto.footerHtml !== undefined
-              ? dto.footerHtml
-              : current.footerHtml,
+            dto.footerHtml !== undefined ? dto.footerHtml : current.footerHtml,
         },
         { new: true, upsert: true },
       )
       .exec();
 
-    const raw = doc!.toObject() as unknown as Record<string, unknown>;
+    const raw = doc.toObject() as unknown as Record<string, unknown>;
     return {
       id: String(raw._id),
       headerHtml: (raw.headerHtml as string) || '',
@@ -413,9 +406,7 @@ export class AnnouncementsService {
       for (let wave = 0; wave < 5000; wave++) {
         let doc: AnnouncementDocument | null;
         try {
-          doc = await this.announcementModel
-            .findById(announcementId)
-            .exec();
+          doc = await this.announcementModel.findById(announcementId).exec();
         } catch {
           return;
         }
@@ -427,7 +418,8 @@ export class AnnouncementsService {
             (d) => d.status === 'failed',
           ).length;
 
-          doc.status = failedCount === doc.deliveries.length ? 'failed' : 'sent';
+          doc.status =
+            failedCount === doc.deliveries.length ? 'failed' : 'sent';
           doc.sentAt = new Date();
           doc.lastRunAt = new Date();
           doc.processing = false;
@@ -443,7 +435,7 @@ export class AnnouncementsService {
         const batch = pending.slice(0, WAVE_SIZE);
         await Promise.all(
           batch.map((delivery) =>
-            this.sendSingle(doc!, delivery).catch(() => undefined),
+            this.sendSingle(doc, delivery).catch(() => undefined),
           ),
         );
 
@@ -462,10 +454,7 @@ export class AnnouncementsService {
       }
     } finally {
       await this.announcementModel
-        .updateOne(
-          { _id: announcementId },
-          { $set: { processing: false } },
-        )
+        .updateOne({ _id: announcementId }, { $set: { processing: false } })
         .exec();
     }
   }
@@ -673,8 +662,10 @@ export class AnnouncementsService {
     return {
       ...doc,
       id: String(doc._id),
-      groupLabel: GROUP_LABELS[doc.recipientGroup as keyof typeof GROUP_LABELS] ?? '',
-      statusLabel: STATUS_LABELS[doc.status as keyof typeof STATUS_LABELS] ?? '',
+      groupLabel:
+        GROUP_LABELS[doc.recipientGroup as keyof typeof GROUP_LABELS] ?? '',
+      statusLabel:
+        STATUS_LABELS[doc.status as keyof typeof STATUS_LABELS] ?? '',
       counts,
       deliveries: deliveries.map((d) => ({
         email: d.email,

@@ -10,9 +10,7 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import {
-  ANNOUNCEMENT_GROUPS,
-} from '../schemas/announcement.schema';
+import { ANNOUNCEMENT_GROUPS } from '../schemas/announcement.schema';
 import { AttachmentDto } from './attachment.dto';
 
 export class CreateAnnouncementDto {

@@ -53,20 +53,24 @@ export class TeamService {
       subtitle: dto.subtitle?.trim() ?? '',
       isActive: dto.isActive ?? true,
     };
-    team.sections.push(section as any);
+    team.sections.push(section);
     await team.save();
     return team.sections[team.sections.length - 1];
   }
 
   async updateSection(id: string, dto: UpdateTeamSectionDto) {
     const team = await this.getOrCreate();
-    const index = team.sections.findIndex((s) => (s as any)._id?.toString() === id);
+    const index = team.sections.findIndex(
+      (s) => (s as any)._id?.toString() === id,
+    );
     if (index === -1) {
       throw new NotFoundException('Section introuvable');
     }
     if (dto.title !== undefined) team.sections[index].title = dto.title.trim();
-    if (dto.subtitle !== undefined) team.sections[index].subtitle = dto.subtitle?.trim() ?? '';
-    if (dto.isActive !== undefined) team.sections[index].isActive = dto.isActive;
+    if (dto.subtitle !== undefined)
+      team.sections[index].subtitle = dto.subtitle?.trim() ?? '';
+    if (dto.isActive !== undefined)
+      team.sections[index].isActive = dto.isActive;
     await team.save();
     return team.sections[index];
   }
@@ -74,7 +78,9 @@ export class TeamService {
   async removeSection(id: string): Promise<{ deleted: boolean }> {
     const team = await this.getOrCreate();
     const initialLength = team.sections.length;
-    team.sections = team.sections.filter((s) => (s as any)._id?.toString() !== id);
+    team.sections = team.sections.filter(
+      (s) => (s as any)._id?.toString() !== id,
+    );
     if (team.sections.length === initialLength) {
       throw new NotFoundException('Section introuvable');
     }
@@ -84,7 +90,10 @@ export class TeamService {
     return { deleted: true };
   }
 
-  private async detachSectionFromMembers(team: TeamDocument, sectionId: string): Promise<void> {
+  private async detachSectionFromMembers(
+    team: TeamDocument,
+    sectionId: string,
+  ): Promise<void> {
     for (const member of team.members || []) {
       if (member.sectionIds?.includes(sectionId)) {
         member.sectionIds = member.sectionIds.filter((s) => s !== sectionId);
@@ -184,7 +193,8 @@ export class TeamService {
     if (dto.photo !== undefined) member.photo = dto.photo;
     if (dto.name !== undefined) member.name = dto.name.trim();
     if (dto.role !== undefined) member.role = dto.role?.trim() ?? '';
-    if (dto.description !== undefined) member.description = dto.description?.trim() ?? '';
+    if (dto.description !== undefined)
+      member.description = dto.description?.trim() ?? '';
     if (dto.isActive !== undefined) member.isActive = dto.isActive;
     if (dto.socialLinks !== undefined) {
       if (!member.socialLinks) member.socialLinks = {};

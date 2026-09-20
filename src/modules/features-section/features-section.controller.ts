@@ -1,9 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Put,
-} from '@nestjs/common';
+import { Body, Controller, Get, Put } from '@nestjs/common';
 import { FeaturesSectionService } from './features-section.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UpdateFeaturesSectionDto } from './dto/update-features-section.dto';
@@ -12,7 +7,9 @@ import { Public } from '../../common/decorators/public.decorator';
 @Roles('admin', 'superadmin')
 @Controller('features-section')
 export class FeaturesSectionController {
-  constructor(private readonly featuresSectionService: FeaturesSectionService) {}
+  constructor(
+    private readonly featuresSectionService: FeaturesSectionService,
+  ) {}
 
   @Public()
   @Get()

@@ -1,16 +1,35 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { About, AboutDocument } from '../../about/schemas/about.schema';
-import { DonationMethod, DonationMethodDocument } from '../../donations/schemas/donation-method.schema';
+import {
+  DonationMethod,
+  DonationMethodDocument,
+} from '../../donations/schemas/donation-method.schema';
 import { Event, EventDocument } from '../../events/schemas/event.schema';
-import { FeaturesSection, FeaturesSectionDocument } from '../../features-section/schemas/features-section.schema';
+import {
+  FeaturesSection,
+  FeaturesSectionDocument,
+} from '../../features-section/schemas/features-section.schema';
 import { Impact, ImpactDocument } from '../../impacts/schemas/impact.schema';
 import { News, NewsDocument } from '../../news/schemas/news.schema';
-import { Partner, PartnerDocument } from '../../partners/schemas/partner.schema';
-import { Program, ProgramDocument } from '../../programs/schemas/program.schema';
-import { Resource, ResourceDocument } from '../../resources/schemas/resource.schema';
-import { SiteConfig, SiteConfigDocument } from '../../site/schemas/site-config.schema';
+import {
+  Partner,
+  PartnerDocument,
+} from '../../partners/schemas/partner.schema';
+import {
+  Program,
+  ProgramDocument,
+} from '../../programs/schemas/program.schema';
+import {
+  Resource,
+  ResourceDocument,
+} from '../../resources/schemas/resource.schema';
+import {
+  SiteConfig,
+  SiteConfigDocument,
+} from '../../site/schemas/site-config.schema';
 import { Team, TeamDocument } from '../../team/schemas/team.schema';
 
 /** Longueur maximale d'un texte libre dans le contexte injecté. */
@@ -18,6 +37,9 @@ const MAX_TEXT = 500;
 
 /** Budget total du bloc « CONTEXTE DYNAMIQUE » (en caractères). */
 const MAX_TOTAL = 24_000;
+
+/** Durée de vie du cache du contexte dynamique (réduit les requêtes DB + le prefill). */
+const CACHE_TTL_MS_DEFAULT = 60_000;
 
 /**
  * Construit le bloc « CONTEXTE DYNAMIQUE » fourni à Orizia : uniquement des
@@ -42,77 +64,121 @@ const MAX_TOTAL = 24_000;
  */
 @Injectable()
 export class OriziaContextBuilder {
+  /** Bloc dynamique mis en cache pour éviter 11 requêtes DB à chaque question. */
+  private cachedBody = '';
+  private cachedAt = 0;
+
   constructor(
-    @InjectModel(SiteConfig.name) private readonly siteConfigModel: Model<SiteConfigDocument>,
+    private readonly config: ConfigService,
+    @InjectModel(SiteConfig.name)
+    private readonly siteConfigModel: Model<SiteConfigDocument>,
     @InjectModel(About.name) private readonly aboutModel: Model<AboutDocument>,
     @InjectModel(News.name) private readonly newsModel: Model<NewsDocument>,
     @InjectModel(Event.name) private readonly eventModel: Model<EventDocument>,
-    @InjectModel(Program.name) private readonly programModel: Model<ProgramDocument>,
-    @InjectModel(Resource.name) private readonly resourceModel: Model<ResourceDocument>,
-    @InjectModel(Partner.name) private readonly partnerModel: Model<PartnerDocument>,
+    @InjectModel(Program.name)
+    private readonly programModel: Model<ProgramDocument>,
+    @InjectModel(Resource.name)
+    private readonly resourceModel: Model<ResourceDocument>,
+    @InjectModel(Partner.name)
+    private readonly partnerModel: Model<PartnerDocument>,
     @InjectModel(Team.name) private readonly teamModel: Model<TeamDocument>,
-    @InjectModel(Impact.name) private readonly impactModel: Model<ImpactDocument>,
-    @InjectModel(FeaturesSection.name) private readonly featuresModel: Model<FeaturesSectionDocument>,
-    @InjectModel(DonationMethod.name) private readonly donationModel: Model<DonationMethodDocument>,
+    @InjectModel(Impact.name)
+    private readonly impactModel: Model<ImpactDocument>,
+    @InjectModel(FeaturesSection.name)
+    private readonly featuresModel: Model<FeaturesSectionDocument>,
+    @InjectModel(DonationMethod.name)
+    private readonly donationModel: Model<DonationMethodDocument>,
   ) {}
 
   /** Retourne le bloc dynamique complet, prêt à être injecté dans le prompt. */
   async build(): Promise<string> {
-    const [site, about, news, events, programs, resources, partners, team, impacts, features, donations] =
-      await Promise.all([
-        this.siteConfigModel.findOne().sort({ createdAt: 1 }).lean().catch(() => null),
-        this.aboutModel.findOne().lean().catch(() => null),
-        this.newsModel
-          .find({ status: 'published' })
-          .sort({ publishedAt: -1, createdAt: -1 })
-          .limit(15)
-          .select('title slug excerpt publishedAt')
-          .lean()
-          .catch(() => []),
-        this.eventModel
-          .find()
-          .sort({ startDate: -1 })
-          .limit(12)
-          .select('title startDate endDate status location description')
-          .lean()
-          .catch(() => []),
-        this.programModel
-          .find({ isActive: true })
-          .sort({ order: 1 })
-          .limit(20)
-          .select('title excerpt description')
-          .lean()
-          .catch(() => []),
-        this.resourceModel
-          .find({ isPublished: true })
-          .sort({ createdAt: -1 })
-          .limit(25)
-          .select('title category description fileName')
-          .lean()
-          .catch(() => []),
-        this.partnerModel
-          .find({ isActive: true })
-          .sort({ order: 1 })
-          .limit(30)
-          .select('name website description')
-          .lean()
-          .catch(() => []),
-        this.teamModel.findOne().lean().catch(() => null),
-        this.impactModel
-          .find({ isActive: true })
-          .sort({ order: 1 })
-          .limit(20)
-          .select('title metric subtitle description')
-          .lean()
-          .catch(() => []),
-        this.featuresModel.findOne().lean().catch(() => null),
-        this.donationModel
-          .find({ isActive: true })
-          .sort({ order: 1 })
-          .select('name details paymentLink')
-          .lean()
-          .catch(() => []),
-      ]);
+    // Cache court (par défaut 60 s) : les données publiques du site évoluent
+    // lentement et ne justifient pas 11 requêtes MongoDB par question. Cela
+    // réduit la latence serveur visible avant le premier token.
+    const now = Date.now();
+    if (this.cachedBody && now - this.cachedAt < this.cacheTtlMs()) {
+      return this.cachedBody;
+    }
+
+    const [
+      site,
+      about,
+      news,
+      events,
+      programs,
+      resources,
+      partners,
+      team,
+      impacts,
+      features,
+      donations,
+    ] = await Promise.all([
+      this.siteConfigModel
+        .findOne()
+        .sort({ createdAt: 1 })
+        .lean()
+        .catch(() => null),
+      this.aboutModel
+        .findOne()
+        .lean()
+        .catch(() => null),
+      this.newsModel
+        .find({ status: 'published' })
+        .sort({ publishedAt: -1, createdAt: -1 })
+        .limit(15)
+        .select('title slug excerpt publishedAt')
+        .lean()
+        .catch(() => []),
+      this.eventModel
+        .find()
+        .sort({ startDate: -1 })
+        .limit(12)
+        .select('title startDate endDate status location description')
+        .lean()
+        .catch(() => []),
+      this.programModel
+        .find({ isActive: true })
+        .sort({ order: 1 })
+        .limit(20)
+        .select('title excerpt description')
+        .lean()
+        .catch(() => []),
+      this.resourceModel
+        .find({ isPublished: true })
+        .sort({ createdAt: -1 })
+        .limit(25)
+        .select('title category description fileName')
+        .lean()
+        .catch(() => []),
+      this.partnerModel
+        .find({ isActive: true })
+        .sort({ order: 1 })
+        .limit(30)
+        .select('name website description')
+        .lean()
+        .catch(() => []),
+      this.teamModel
+        .findOne()
+        .lean()
+        .catch(() => null),
+      this.impactModel
+        .find({ isActive: true })
+        .sort({ order: 1 })
+        .limit(20)
+        .select('title metric subtitle description')
+        .lean()
+        .catch(() => []),
+      this.featuresModel
+        .findOne()
+        .lean()
+        .catch(() => null),
+      this.donationModel
+        .find({ isActive: true })
+        .sort({ order: 1 })
+        .select('name details paymentLink')
+        .lean()
+        .catch(() => []),
+    ]);
 
     const parts: string[] = [];
     this.pushOrganisation(parts, site);
@@ -129,11 +195,22 @@ export class OriziaContextBuilder {
 
     const body = parts.filter(Boolean).join('\n');
     if (!body.trim()) {
-      return "Aucune donnée publique n'est disponible dans la base du site pour le moment.";
+      this.cachedBody =
+        "Aucune donnée publique n'est disponible dans la base du site pour le moment.";
+    } else {
+      this.cachedBody =
+        body.length > MAX_TOTAL
+          ? `${body.slice(0, MAX_TOTAL)}\n[... contexte tronqué ...]`
+          : body;
     }
-    return body.length > MAX_TOTAL
-      ? `${body.slice(0, MAX_TOTAL)}\n[... contexte tronqué ...]`
-      : body;
+    this.cachedAt = now;
+    return this.cachedBody;
+  }
+
+  /** Durée de vie du cache en millisecondes (surchargeable via `ORIZIA_CONTEXT_CACHE_TTL_MS`). */
+  private cacheTtlMs(): number {
+    const value = Number(this.config.get<string>('ORIZIA_CONTEXT_CACHE_TTL_MS'));
+    return Number.isFinite(value) && value > 0 ? value : CACHE_TTL_MS_DEFAULT;
   }
 
   // ------------------------------------------------------------- sections
@@ -143,9 +220,12 @@ export class OriziaContextBuilder {
     const lines: string[] = [];
     if (site.orgName) lines.push(`Nom : ${site.orgName}`);
     if (site.tagline) lines.push(`Accroche : ${site.tagline}`);
-    if (site.description) lines.push(`Description : ${this.truncate(site.description, MAX_TEXT)}`);
-    if (site.heroTitle) lines.push(`Titre de la page d'accueil : ${site.heroTitle}`);
-    if (site.heroSubtitle) lines.push(`Sous-titre : ${this.truncate(site.heroSubtitle, MAX_TEXT)}`);
+    if (site.description)
+      lines.push(`Description : ${this.truncate(site.description, MAX_TEXT)}`);
+    if (site.heroTitle)
+      lines.push(`Titre de la page d'accueil : ${site.heroTitle}`);
+    if (site.heroSubtitle)
+      lines.push(`Sous-titre : ${this.truncate(site.heroSubtitle, MAX_TEXT)}`);
     if (site.address) lines.push(`Adresse : ${site.address}`);
     if (site.phone) lines.push(`Téléphone : ${site.phone}`);
     if (site.phone2) lines.push(`Téléphone secondaire : ${site.phone2}`);
@@ -162,9 +242,13 @@ export class OriziaContextBuilder {
   private pushAbout(parts: string[], about: any): void {
     if (!about) return;
     const lines: string[] = [];
-    if (about.mission) lines.push(`Mission : ${this.truncate(about.mission, MAX_TEXT)}`);
-    if (about.vision) lines.push(`Vision : ${this.truncate(about.vision, MAX_TEXT)}`);
-    const values = (about.values ?? []).filter((value: string) => value?.trim());
+    if (about.mission)
+      lines.push(`Mission : ${this.truncate(about.mission, MAX_TEXT)}`);
+    if (about.vision)
+      lines.push(`Vision : ${this.truncate(about.vision, MAX_TEXT)}`);
+    const values = (about.values ?? []).filter((value: string) =>
+      value?.trim(),
+    );
     if (values.length) lines.push(`Valeurs : ${values.join(' • ')}`);
     if (!lines.length) return;
     parts.push(`### MISSION, VISION ET VALEURS\n${lines.join('\n')}`);
@@ -177,14 +261,19 @@ export class OriziaContextBuilder {
       const detail = impact.subtitle || impact.description;
       return `- ${value}${detail ? ` : ${this.truncate(detail, 240)}` : ''}`;
     });
-    parts.push(`### CHIFFRES D'IMPACT (données publiées par l'institution)\n${lines.join('\n')}`);
+    parts.push(
+      `### CHIFFRES D'IMPACT (données publiées par l'institution)\n${lines.join('\n')}`,
+    );
   }
 
   private pushFeatures(parts: string[], features: any): void {
     if (!features) return;
     const lines: string[] = [];
     if (features.title) lines.push(`Titre : ${features.title}`);
-    if (features.description) lines.push(`Description : ${this.truncate(features.description, MAX_TEXT)}`);
+    if (features.description)
+      lines.push(
+        `Description : ${this.truncate(features.description, MAX_TEXT)}`,
+      );
     const items = (features.features ?? []).filter((item: any) => item?.name);
     if (items.length) {
       lines.push("Points d'engagement :");
@@ -210,12 +299,18 @@ export class OriziaContextBuilder {
   private pushNews(parts: string[], news: any[]): void {
     if (!news?.length) return;
     const lines = news.map((item) => {
-      const date = item.publishedAt ? ` (${this.formatDate(item.publishedAt)})` : '';
-      const summary = item.excerpt ? ` : ${this.truncate(item.excerpt, 260)}` : '';
+      const date = item.publishedAt
+        ? ` (${this.formatDate(item.publishedAt)})`
+        : '';
+      const summary = item.excerpt
+        ? ` : ${this.truncate(item.excerpt, 260)}`
+        : '';
       const slug = item.slug ? ` — route : /news/${item.slug}` : '';
       return `- ${item.title}${date}${summary}${slug}`;
     });
-    parts.push(`### ACTUALITÉS PUBLIÉES (les plus récentes)\n${lines.join('\n')}`);
+    parts.push(
+      `### ACTUALITÉS PUBLIÉES (les plus récentes)\n${lines.join('\n')}`,
+    );
   }
 
   private pushEvents(parts: string[], events: any[]): void {
@@ -232,7 +327,9 @@ export class OriziaContextBuilder {
           : '';
       const status = labels[event.status] ?? event.status ?? '';
       const place = event.location ? ` — lieu : ${event.location}` : '';
-      const summary = event.description ? ` — ${this.truncate(event.description, 240)}` : '';
+      const summary = event.description
+        ? ` — ${this.truncate(event.description, 240)}`
+        : '';
       return `- ${event.title} (${status}) ${period}${place}${summary}`;
     });
     parts.push(`### ÉVÉNEMENTS\n${lines.join('\n')}`);
@@ -242,7 +339,9 @@ export class OriziaContextBuilder {
     if (!resources?.length) return;
     const lines = resources.map((resource) => {
       const category = resource.category ? ` [${resource.category}]` : '';
-      const summary = resource.description ? ` : ${this.truncate(resource.description, 240)}` : '';
+      const summary = resource.description
+        ? ` : ${this.truncate(resource.description, 240)}`
+        : '';
       const file = resource.fileName ? ` — fichier : ${resource.fileName}` : '';
       return `- ${resource.title}${category}${summary}${file}`;
     });
@@ -253,19 +352,27 @@ export class OriziaContextBuilder {
 
   private pushTeam(parts: string[], team: any): void {
     if (!team) return;
-    const sections = (team.sections ?? []).filter((section: any) => section?.isActive !== false && section?.title);
-    const members = (team.members ?? []).filter((member: any) => member?.isActive !== false && member?.name);
+    const sections = (team.sections ?? []).filter(
+      (section: any) => section?.isActive !== false && section?.title,
+    );
+    const members = (team.members ?? []).filter(
+      (member: any) => member?.isActive !== false && member?.name,
+    );
     if (!sections.length && !members.length) return;
 
     const lines: string[] = [];
     if (sections.length) {
-      lines.push(`Organisation de l'équipe : ${sections.map((s: any) => s.title).join(' • ')}`);
+      lines.push(
+        `Organisation de l'équipe : ${sections.map((s: any) => s.title).join(' • ')}`,
+      );
     }
     if (members.length) {
       lines.push('Membres :');
       for (const member of members) {
         const role = member.role ? ` — ${member.role}` : '';
-        const description = member.description ? ` : ${this.truncate(member.description, 200)}` : '';
+        const description = member.description
+          ? ` : ${this.truncate(member.description, 200)}`
+          : '';
         lines.push(`- ${member.name}${role}${description}`);
       }
     }
@@ -276,7 +383,9 @@ export class OriziaContextBuilder {
     if (!partners?.length) return;
     const lines = partners.map((partner) => {
       const website = partner.website ? ` — ${partner.website}` : '';
-      const summary = partner.description ? ` : ${this.truncate(partner.description, 200)}` : '';
+      const summary = partner.description
+        ? ` : ${this.truncate(partner.description, 200)}`
+        : '';
       return `- ${partner.name}${summary}${website}`;
     });
     parts.push(`### PARTENAIRES\n${lines.join('\n')}`);
@@ -285,7 +394,9 @@ export class OriziaContextBuilder {
   private pushDonations(parts: string[], donations: any[]): void {
     if (!donations?.length) return;
     const lines = donations.map((method) => {
-      const details = method.details ? ` : ${this.truncate(method.details, 240)}` : '';
+      const details = method.details
+        ? ` : ${this.truncate(method.details, 240)}`
+        : '';
       return `- ${method.name}${details}`;
     });
     parts.push(
@@ -299,7 +410,11 @@ export class OriziaContextBuilder {
     const date = value instanceof Date ? value : new Date(String(value));
     return Number.isNaN(date.getTime())
       ? ''
-      : date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+      : date.toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        });
   }
 
   private truncate(value: unknown, max: number): string {

@@ -51,5 +51,7 @@ liste des extensions supportées.
 5. **N'incluez AUCUNE donnée personnelle** (listes de candidats, e-mails, téléphones
    privés, bulletins de notes, dossiers d'inscription) : ces fichiers seraient injectés
    dans le contexte du modèle d'IA. Ce répertoire est réservé aux **données publiques**.
-6. Après tout ajout ou modification, **redémarrez le backend** (`npm run start:dev` le fait
-   automatiquement en mode watch) : le contexte est mis en cache au démarrage.
+6. Après tout ajout, modification ou suppression, le contexte est **rechargé
+   automatiquement en moins de 30 secondes** (aucun redémarrage nécessaire) : posez une
+   question à Orizia pour déclencher le rechargement. Vérifiez les logs du backend :
+   `Contexte Orizia : N document(s), X caractères` est réaffiché à chaque rechargement.

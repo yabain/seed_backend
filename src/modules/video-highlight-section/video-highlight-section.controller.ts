@@ -8,6 +8,10 @@ import { VideoHighlightSectionService } from './video-highlight-section.service'
 @Controller('video-highlight-section')
 export class VideoHighlightSectionController {
   constructor(private readonly service: VideoHighlightSectionService) {}
-  @Public() @Get() getPublic() { return this.service.getPublic(); }
-  @Put() update(@Body() dto: UpdateVideoHighlightSectionDto) { return this.service.update(dto); }
+  @Public() @Get() getPublic() {
+    return this.service.getPublic();
+  }
+  @Put() update(@Body() dto: UpdateVideoHighlightSectionDto) {
+    return this.service.update(dto);
+  }
 }

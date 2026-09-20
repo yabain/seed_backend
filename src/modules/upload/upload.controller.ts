@@ -47,7 +47,9 @@ export class UploadController {
   constructor(private readonly configService: ConfigService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_SIZE } }))
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_SIZE } }),
+  )
   async upload(
     @UploadedFile() file: UploadedFileLike,
     @Body() body: UploadBody,

@@ -3,9 +3,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { SiteController } from './site.controller';
 import { SiteService } from './site.service';
 import { SiteConfig, SiteConfigSchema } from './schemas/site-config.schema';
+import { CryptModule } from '../crypt/crypt.module';
 
 @Module({
   imports: [
+    CryptModule,
     MongooseModule.forFeature([
       { name: SiteConfig.name, schema: SiteConfigSchema },
     ]),

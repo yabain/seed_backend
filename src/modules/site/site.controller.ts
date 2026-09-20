@@ -1,9 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Put,
-} from '@nestjs/common';
+import { Body, Controller, Get, Put } from '@nestjs/common';
 import { SiteService } from './site.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UpdateSiteConfigDto } from './dto/update-site-config.dto';

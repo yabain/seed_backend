@@ -21,17 +21,20 @@ const defaultFeatures = (): FeatureItem[] => [
   {
     icon: '',
     name: 'Abolition des frontières du savoir',
-    details: 'Un partage d\'expériences direct entre experts internationaux et entrepreneurs locaux.',
+    details:
+      "Un partage d'expériences direct entre experts internationaux et entrepreneurs locaux.",
   },
   {
     icon: '',
     name: 'Leadership serviteur & éthique',
-    details: 'Placer l\'humain, l\'intégrité et l\'impact communautaire au cœur de chaque décision.',
+    details:
+      "Placer l'humain, l'intégrité et l'impact communautaire au cœur de chaque décision.",
   },
   {
     icon: '',
     name: 'Engagement durable',
-    details: 'Suivi post-incubation pour assurer la pérennité et le succès de votre projet.',
+    details:
+      'Suivi post-incubation pour assurer la pérennité et le succès de votre projet.',
   },
 ];
 
@@ -59,4 +62,5 @@ export class FeaturesSection {
   visible: boolean;
 }
 
-export const FeaturesSectionSchema = SchemaFactory.createForClass(FeaturesSection);
+export const FeaturesSectionSchema =
+  SchemaFactory.createForClass(FeaturesSection);

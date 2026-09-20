@@ -35,6 +35,9 @@ export class AboutService {
     if (dto.values !== undefined) {
       about.values = dto.values.map((value) => value ?? '');
     }
+    if (dto.visual !== undefined) {
+      about.visual = dto.visual;
+    }
     await about.save();
     return about.toObject();
   }

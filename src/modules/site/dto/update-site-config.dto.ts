@@ -76,13 +76,34 @@ export class LandingSectionTextDto {
 }
 
 export class LandingSectionsDto {
-  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) events?: LandingSectionTextDto;
-  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) news?: LandingSectionTextDto;
-  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) programs?: LandingSectionTextDto;
-  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) partners?: LandingSectionTextDto;
-  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) resources?: LandingSectionTextDto;
-  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) team?: LandingSectionTextDto;
-  @IsOptional() @ValidateNested() @Type(() => LandingSectionTextDto) donations?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  events?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  news?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  programs?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  partners?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  resources?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  team?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  donations?: LandingSectionTextDto;
 }
 
 export class HoverMenuItemDto {
@@ -104,6 +125,40 @@ export class HoverMenuDto {
   @ValidateNested({ each: true })
   @Type(() => HoverMenuItemDto)
   items?: HoverMenuItemDto[];
+}
+
+export class OriziaDto {
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  visible?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  logo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  welcomeImage?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  openRouterApiKey?: string;
+
+  @IsOptional()
+  temperature?: number;
+
+  @IsOptional()
+  @Matches(/^(low|medium|high)$/i, {
+    message: 'Niveau de réflexion invalide (low, medium, high).',
+  })
+  reasoningLevel?: string;
 }
 
 export class UpdateSiteConfigDto {
@@ -164,13 +219,15 @@ export class UpdateSiteConfigDto {
 
   @IsOptional()
   @Matches(HEX_COLOR_REGEX, {
-    message: 'Couleur primaire invalide : utilisez un code hexadécimal (ex: #0bcc9c)',
+    message:
+      'Couleur primaire invalide : utilisez un code hexadécimal (ex: #0bcc9c)',
   })
   primaryColor?: string;
 
   @IsOptional()
   @Matches(HEX_COLOR_REGEX, {
-    message: 'Couleur secondaire invalide : utilisez un code hexadécimal (ex: #134e4a)',
+    message:
+      'Couleur secondaire invalide : utilisez un code hexadécimal (ex: #134e4a)',
   })
   secondaryColor?: string;
 
@@ -189,4 +246,9 @@ export class UpdateSiteConfigDto {
   @ValidateNested()
   @Type(() => HoverMenuDto)
   hoverMenu?: HoverMenuDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => OriziaDto)
+  orizia?: OriziaDto;
 }

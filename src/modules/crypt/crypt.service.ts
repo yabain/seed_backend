@@ -58,11 +58,7 @@ export class CryptService {
     if (!this.timingSafeEqual(expectedHmac, computedHmac)) {
       throw new Error('Invalid HMAC - data may have been tampered with');
     }
-    const decipher = crypto.createDecipheriv(
-      this.algorithm,
-      key,
-      iv,
-    );
+    const decipher = crypto.createDecipheriv(this.algorithm, key, iv);
     const plaintext = Buffer.concat([
       decipher.update(ciphertext),
       decipher.final(),

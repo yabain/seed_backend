@@ -49,7 +49,9 @@ export function renderEmailLayout(options: {
   const secondary = normalizeHex(colors?.secondary, DEFAULT_SECONDARY);
   const year = new Date().getFullYear();
   const logo = options.branding?.logo?.trim();
-  const orgName = escapeHtml(options.branding?.orgName?.trim() ?? 'Organisation');
+  const orgName = escapeHtml(
+    options.branding?.orgName?.trim() ?? 'Organisation',
+  );
   const logoHtml = logo
     ? `<img src="${escapeHtml(logo)}" alt="${orgName}" style="display:inline-block;max-height:38px;max-width:160px;height:auto;vertical-align:middle;margin-right:10px;" />`
     : `<span style="display:inline-block;width:38px;height:38px;line-height:38px;text-align:center;background:${primary};color:#ffffff;border-radius:10px;font-size:20px;font-weight:bold;margin-right:10px;vertical-align:middle;">${orgName.charAt(0)}</span>`;
@@ -89,7 +91,7 @@ export function renderEmailLayout(options: {
       });
     }
     if (icons.length) {
-      socialHtml = `<table cellpadding="0" cellspacing="0" style="margin-top:10px;"><tr>${icons.map(icon => `<td style="padding:0 6px;"><a href="${escapeHtml(icon.href)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;">${icon.svg}</a></td>`).join('')}</tr></table>`;
+      socialHtml = `<table cellpadding="0" cellspacing="0" style="margin-top:10px;"><tr>${icons.map((icon) => `<td style="padding:0 6px;"><a href="${escapeHtml(icon.href)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;">${icon.svg}</a></td>`).join('')}</tr></table>`;
     }
   }
 

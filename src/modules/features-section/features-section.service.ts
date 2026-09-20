@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { FeaturesSection, FeaturesSectionDocument, FeatureItem } from './schemas/features-section.schema';
+import {
+  FeaturesSection,
+  FeaturesSectionDocument,
+  FeatureItem,
+} from './schemas/features-section.schema';
 import { UpdateFeaturesSectionDto } from './dto/update-features-section.dto';
 
 @Injectable()
@@ -12,7 +16,10 @@ export class FeaturesSectionService {
   ) {}
 
   private async getOrCreate(): Promise<FeaturesSectionDocument> {
-    let section = await this.featuresSectionModel.findOne().sort({ createdAt: 1 }).exec();
+    let section = await this.featuresSectionModel
+      .findOne()
+      .sort({ createdAt: 1 })
+      .exec();
     if (!section) {
       section = await this.featuresSectionModel.create({ features: undefined });
     }

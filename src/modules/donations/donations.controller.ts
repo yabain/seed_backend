@@ -16,7 +16,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { DonationsService } from './donations.service';
 import { CreateDonationMethodDto } from './dto/create-donation-method.dto';
 import { UpdateDonationMethodDto } from './dto/update-donation-method.dto';
-import { DonationMethod, DonationMethodDocument } from './schemas/donation-method.schema';
+import {
+  DonationMethod,
+  DonationMethodDocument,
+} from './schemas/donation-method.schema';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 
@@ -43,9 +46,7 @@ export class DonationsController {
 
   @Post()
   @Roles('admin', 'superadmin')
-  createMethod(
-    @Body() dto: CreateDonationMethodDto,
-  ): Promise<DonationMethod> {
+  createMethod(@Body() dto: CreateDonationMethodDto): Promise<DonationMethod> {
     return this.donationsService.create(dto);
   }
 

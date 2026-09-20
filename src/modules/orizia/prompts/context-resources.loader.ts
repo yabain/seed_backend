@@ -6,13 +6,25 @@ import * as zlib from 'zlib';
 import * as XLSX from 'xlsx';
 
 /** Extensions lues telles quelles (texte brut). */
-const TEXT_EXTENSIONS = new Set(['.md', '.markdown', '.txt', '.csv', '.json', '.yml', '.yaml']);
+const TEXT_EXTENSIONS = new Set([
+  '.md',
+  '.markdown',
+  '.txt',
+  '.csv',
+  '.json',
+  '.yml',
+  '.yaml',
+]);
 
 /** Extensions prises en charge via un extracteur dédié. */
 const SPREADSHEET_EXTENSIONS = new Set(['.xlsx', '.xls']);
 const DOCX_EXTENSIONS = new Set(['.docx']);
 
-const SUPPORTED = [...TEXT_EXTENSIONS, ...SPREADSHEET_EXTENSIONS, ...DOCX_EXTENSIONS].join(', ');
+const SUPPORTED = [
+  ...TEXT_EXTENSIONS,
+  ...SPREADSHEET_EXTENSIONS,
+  ...DOCX_EXTENSIONS,
+].join(', ');
 
 /**
  * Charge les fichiers de contexte d'Orizia depuis le répertoire pointé par
@@ -28,13 +40,21 @@ export class OriziaContextLoader {
   private cachedContext = '';
   private loadedFiles: string[] = [];
   private skippedFiles: string[] = [];
+  private lastCheckAt = 0;
+  private lastSignature = '';
+
+  /** Intervalle minimal entre deux vérifications du répertoire (ms). */
+  private static readonly RECHECK_INTERVAL_MS = 30_000;
 
   constructor(private readonly config: ConfigService) {}
 
   /** Répertoire absolu des fichiers de contexte. */
   resolveDirectory(): string {
-    const configured = this.config.get<string>('ORIZIA_CONTEXT_DIR') || './context_udm';
-    return path.isAbsolute(configured) ? configured : path.resolve(process.cwd(), configured);
+    const configured =
+      this.config.get<string>('ORIZIA_CONTEXT_DIR') || './context_udm';
+    return path.isAbsolute(configured)
+      ? configured
+      : path.resolve(process.cwd(), configured);
   }
 
   /** Fichiers effectivement injectés dans le contexte (diagnostic). */
@@ -47,9 +67,56 @@ export class OriziaContextLoader {
     return [...this.skippedFiles];
   }
 
-  /** Contexte mis en cache (chargé au démarrage du module). */
+  /**
+   * Contexte mis en cache (chargé au démarrage du module).
+   *
+   * Le répertoire est revérifié au maximum une fois toutes les 30 secondes : si un
+   * document a été ajouté, modifié ou supprimé, le contexte est rechargé
+   * automatiquement. La documentation est ainsi modifiable en production sans
+   * redémarrer le serveur ni toucher au code.
+   */
   get(): string {
+    this.refreshIfChanged();
     return this.cachedContext;
+  }
+
+  /**
+   * Signature du répertoire : noms + dates de modification. Elle change dès
+   * qu'un document est ajouté, renommé, modifié ou supprimé.
+   */
+  private signatureOf(dir: string): string {
+    try {
+      return fs
+        .readdirSync(dir)
+        .sort()
+        .map((name) => {
+          const stat = fs.statSync(path.join(dir, name));
+          return `${name}:${stat.isDirectory() ? 'dir' : stat.mtimeMs}`;
+        })
+        .join('|');
+    } catch {
+      return '';
+    }
+  }
+
+  private refreshIfChanged(): void {
+    const now = Date.now();
+    if (now - this.lastCheckAt < OriziaContextLoader.RECHECK_INTERVAL_MS) {
+      return;
+    }
+    this.lastCheckAt = now;
+
+    const dir = this.resolveDirectory();
+    if (!fs.existsSync(dir)) {
+      return;
+    }
+    const signature = this.signatureOf(dir);
+    if (signature && signature !== this.lastSignature) {
+      this.logger.log(
+        'Modification détectée dans le répertoire de contexte : rechargement.',
+      );
+      this.load();
+    }
   }
 
   /** Charge (ou recharge) l'intégralité du répertoire de contexte. */
@@ -67,7 +134,10 @@ export class OriziaContextLoader {
     }
 
     const maxTotal = this.numberFromEnv('ORIZIA_CONTEXT_MAX_CHARS', 120_000);
-    const maxPerFile = this.numberFromEnv('ORIZIA_CONTEXT_MAX_CHARS_PER_FILE', 40_000);
+    const maxPerFile = this.numberFromEnv(
+      'ORIZIA_CONTEXT_MAX_CHARS_PER_FILE',
+      40_000,
+    );
 
     const entries = fs
       .readdirSync(dir, { withFileTypes: true })
@@ -103,7 +173,9 @@ export class OriziaContextLoader {
         content = this.extract(path.join(dir, name), extension).trim();
       } catch (error) {
         this.skippedFiles.push(name);
-        this.logger.warn(`Fichier de contexte illisible : ${name} (${(error as Error).message})`);
+        this.logger.warn(
+          `Fichier de contexte illisible : ${name} (${(error as Error).message})`,
+        );
         continue;
       }
 
@@ -120,21 +192,30 @@ export class OriziaContextLoader {
 
       if (used + content.length > maxTotal) {
         this.skippedFiles.push(name);
-        this.logger.warn(`Fichier de contexte ignoré (budget global atteint) : ${name}`);
+        this.logger.warn(
+          `Fichier de contexte ignoré (budget global atteint) : ${name}`,
+        );
         continue;
       }
 
       used += content.length;
       this.loadedFiles.push(name);
-      blocks.push(`===== DOCUMENT : ${name} =====\n${content}\n===== FIN DOCUMENT : ${name} =====`);
+      blocks.push(
+        `===== DOCUMENT : ${name} =====\n${content}\n===== FIN DOCUMENT : ${name} =====`,
+      );
     }
 
     this.cachedContext = blocks.join('\n\n');
+    // Référence pour la détection des modifications ultérieures.
+    this.lastSignature = this.signatureOf(dir);
+    this.lastCheckAt = Date.now();
     this.logger.log(
       `Contexte Orizia : ${this.loadedFiles.length} document(s), ${used} caractères (${dir})`,
     );
     if (this.skippedFiles.length) {
-      this.logger.warn(`Fichiers de contexte ignorés : ${this.skippedFiles.join(', ')}`);
+      this.logger.warn(
+        `Fichiers de contexte ignorés : ${this.skippedFiles.join(', ')}`,
+      );
     }
     return this.cachedContext;
   }
@@ -171,7 +252,10 @@ export class OriziaContextLoader {
    * ZIP puis on la décompresse avec `zlib` — sans ajouter de dépendance.
    */
   private readDocx(fullPath: string): string {
-    const xml = this.readZipEntry(fs.readFileSync(fullPath), 'word/document.xml');
+    const xml = this.readZipEntry(
+      fs.readFileSync(fullPath),
+      'word/document.xml',
+    );
     if (!xml) {
       return '';
     }
@@ -207,7 +291,10 @@ export class OriziaContextLoader {
     let cursor = buffer.readUInt32LE(eocd + 16);
 
     for (let index = 0; index < entryCount; index++) {
-      if (cursor + 46 > buffer.length || buffer.readUInt32LE(cursor) !== 0x02014b50) {
+      if (
+        cursor + 46 > buffer.length ||
+        buffer.readUInt32LE(cursor) !== 0x02014b50
+      ) {
         return null;
       }
       const method = buffer.readUInt16LE(cursor + 10);
@@ -216,7 +303,11 @@ export class OriziaContextLoader {
       const extraLength = buffer.readUInt16LE(cursor + 30);
       const commentLength = buffer.readUInt16LE(cursor + 32);
       const localOffset = buffer.readUInt32LE(cursor + 42);
-      const name = buffer.toString('utf-8', cursor + 46, cursor + 46 + nameLength);
+      const name = buffer.toString(
+        'utf-8',
+        cursor + 46,
+        cursor + 46 + nameLength,
+      );
 
       if (name === entryName) {
         if (buffer.readUInt32LE(localOffset) !== 0x04034b50) {

@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { FeaturesSection, FeaturesSectionSchema } from './schemas/features-section.schema';
+import {
+  FeaturesSection,
+  FeaturesSectionSchema,
+} from './schemas/features-section.schema';
 import { FeaturesSectionService } from './features-section.service';
 import { FeaturesSectionController } from './features-section.controller';
 

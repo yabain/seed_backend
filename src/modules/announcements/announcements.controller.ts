@@ -76,7 +76,12 @@ export class AnnouncementsController {
     FileInterceptor('file', { limits: { fileSize: MAX_ATTACHMENT_SIZE } }),
   )
   async uploadAttachment(
-    @UploadedFile() file?: { mimetype: string; originalname: string; buffer: Buffer },
+    @UploadedFile()
+    file?: {
+      mimetype: string;
+      originalname: string;
+      buffer: Buffer;
+    },
   ) {
     if (!file?.buffer) {
       throw new BadRequestException('Fichier manquant.');
@@ -109,7 +114,14 @@ export class AnnouncementsController {
   /* ------------------------------- APERÇU --------------------------- */
 
   @Post('preview')
-  preview(@Body() body: { bodyHtml?: string; includeHeader?: boolean; includeFooter?: boolean }) {
+  preview(
+    @Body()
+    body: {
+      bodyHtml?: string;
+      includeHeader?: boolean;
+      includeFooter?: boolean;
+    },
+  ) {
     return this.announcementsService.preview(
       body?.bodyHtml ?? '',
       body?.includeHeader ?? true,

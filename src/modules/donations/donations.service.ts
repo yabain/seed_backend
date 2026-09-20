@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { DonationMethod, DonationMethodDocument } from './schemas/donation-method.schema';
+import {
+  DonationMethod,
+  DonationMethodDocument,
+} from './schemas/donation-method.schema';
 import { CreateDonationMethodDto } from './dto/create-donation-method.dto';
 import { UpdateDonationMethodDto } from './dto/update-donation-method.dto';
 
@@ -18,7 +21,10 @@ export class DonationsService {
   }
 
   async findAllActive(): Promise<DonationMethodDocument[]> {
-    return this.donationMethodModel.find({ isActive: true }).sort({ order: 1 }).exec();
+    return this.donationMethodModel
+      .find({ isActive: true })
+      .sort({ order: 1 })
+      .exec();
   }
 
   async findAll(): Promise<DonationMethodDocument[]> {
@@ -33,8 +39,13 @@ export class DonationsService {
     return method;
   }
 
-  async update(id: string, dto: UpdateDonationMethodDto): Promise<DonationMethodDocument> {
-    const method = await this.donationMethodModel.findByIdAndUpdate(id, dto, { new: true }).exec();
+  async update(
+    id: string,
+    dto: UpdateDonationMethodDto,
+  ): Promise<DonationMethodDocument> {
+    const method = await this.donationMethodModel
+      .findByIdAndUpdate(id, dto, { new: true })
+      .exec();
     if (!method) {
       throw new NotFoundException(`Méthode de don avec ID ${id} non trouvée`);
     }

@@ -58,4 +58,5 @@ export class CountriesSection {
   visible: boolean;
 }
 
-export const CountriesSectionSchema = SchemaFactory.createForClass(CountriesSection);
+export const CountriesSectionSchema =
+  SchemaFactory.createForClass(CountriesSection);

@@ -59,11 +59,7 @@ export class NewsService {
     if (excludeId) {
       filter._id = { $ne: excludeId };
     }
-    const rows = await this.newsModel
-      .find(filter)
-      .select('slug')
-      .lean()
-      .exec();
+    const rows = await this.newsModel.find(filter).select('slug').lean().exec();
     const taken = new Set(rows.map((row) => row.slug));
     if (!taken.has(base)) {
       return base;

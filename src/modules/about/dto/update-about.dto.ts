@@ -16,4 +16,9 @@ export class UpdateAboutDto {
   @IsString({ each: true })
   @MaxLength(200, { each: true })
   values?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  visual?: string;
 }

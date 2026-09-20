@@ -16,6 +16,9 @@ export class About {
 
   @Prop({ type: [String], default: ['', '', ''] })
   values: string[];
+
+  @Prop({ default: '' })
+  visual: string;
 }
 
 export const AboutSchema = SchemaFactory.createForClass(About);
