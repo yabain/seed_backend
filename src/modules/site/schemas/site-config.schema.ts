@@ -118,6 +118,7 @@ export class SiteConfig {
       events: { type: Boolean, default: true },
       team: { type: Boolean, default: true },
       donations: { type: Boolean, default: true },
+      recruitments: { type: Boolean, default: true },
     },
     default: {},
   })
@@ -129,6 +130,7 @@ export class SiteConfig {
     events: boolean;
     team: boolean;
     donations: boolean;
+    recruitments: boolean;
   };
 
   @Prop({
@@ -170,6 +172,12 @@ export class SiteConfig {
         buttonLabel: { type: String, default: '' },
       },
       donations: {
+        eyebrow: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+      },
+      recruitments: {
         eyebrow: { type: String, default: '' },
         title: { type: String, default: '' },
         description: { type: String, default: '' },

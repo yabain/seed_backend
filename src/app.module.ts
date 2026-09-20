@@ -35,6 +35,7 @@ import { TeamModule } from './modules/team/team.module';
 import { DonationsModule } from './modules/donations/donations.module';
 import { ImpactsModule } from './modules/impacts/impacts.module';
 import { OriziaModule } from './modules/orizia/orizia.module';
+import { RecruitmentsModule } from './modules/recruitments/recruitments.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -76,6 +77,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     DonationsModule,
     ImpactsModule,
     OriziaModule,
+    RecruitmentsModule,
     SeedModule,
   ],
   controllers: [AppController],

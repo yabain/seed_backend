@@ -66,6 +66,7 @@ const DEFAULT_CONFIG = {
     events: true,
     team: true,
     donations: true,
+    recruitments: true,
   },
   landingSections: {
     events: {
@@ -106,6 +107,13 @@ const DEFAULT_CONFIG = {
       description:
         'Soutenez nos projets en choisissant une méthode de paiement ci-dessous.',
       buttonLabel: 'Faire un don',
+    },
+    recruitments: {
+      eyebrow: 'Recrutement',
+      title: 'Rejoignez notre équipe',
+      description:
+        'Consultez les campagnes de recrutement ouvertes et proposez votre candidature.',
+      buttonLabel: 'Poser une candidature',
     },
   },
   hoverMenu: {

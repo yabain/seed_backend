@@ -24,6 +24,7 @@ import { OriziaController } from './orizia.controller';
 import { OriziaService } from './orizia.service';
 import { OriziaContextBuilder } from './prompts/context.builder';
 import { OriziaContextLoader } from './prompts/context-resources.loader';
+import { DbSearchTool } from './tools/db-search.tool';
 import {
   OriziaConversation,
   OriziaConversationSchema,
@@ -57,6 +58,6 @@ import { SiteModule } from '../site/site.module';
     ]),
   ],
   controllers: [OriziaController],
-  providers: [OriziaService, OriziaContextBuilder, OriziaContextLoader],
+  providers: [OriziaService, OriziaContextBuilder, OriziaContextLoader, DbSearchTool],
 })
 export class OriziaModule {}

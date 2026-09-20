@@ -19,6 +19,7 @@ import { OriziaContextLoader } from './prompts/context-resources.loader';
 import { ORIZIA_ROUTES_RESOURCE } from './prompts/routes.prompt';
 import { ORIZIA_BASE_PROMPT } from './prompts/system.prompt';
 import { searchWeb } from './tools/web-search.tool';
+import { DbSearchTool } from './tools/db-search.tool';
 import { SiteService } from '../site/site.service';
 
 /** Nombre de messages précédents envoyés au modèle. */
@@ -107,6 +108,25 @@ const WEB_TOOL_SCHEMA = {
   },
 };
 
+const DB_TOOL_SCHEMA = {
+  type: 'function',
+  function: {
+    name: 'recherche_base',
+    description:
+      "Recherche dans la base de données publique de l'Université des Montagnes (actualités, programmes, ressources, événements, partenaires, équipe, page À propos, contacts officiels). À utiliser UNIQUEMENT pour retrouver une information publique institutionnelle absente de ton contexte (formations, admissions, frais, campus, contacts, événements, etc.). Ne t'en sers jamais pour des données personnelles ou confidentielles. Passe une requête ciblée en français.",
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Requête de recherche ciblée, en français.',
+        },
+      },
+      required: ['query'],
+    },
+  },
+};
+
 /** Interface d'un appel d'outil reçu du modèle (accumulé depuis les fragments). */
 interface CollectedToolCall {
   id: string;
@@ -171,6 +191,7 @@ export class OriziaService implements OnModuleInit, OnApplicationBootstrap {
     private readonly contextLoader: OriziaContextLoader,
     private readonly contextBuilder: OriziaContextBuilder,
     private readonly siteService: SiteService,
+    private readonly dbSearchTool: DbSearchTool,
   ) {}
 
   onModuleInit(): void {
@@ -399,10 +420,16 @@ export class OriziaService implements OnModuleInit, OnApplicationBootstrap {
 
   /** Exécute l'outil appelé par le modèle et retourne un contenu JSON lisible. */
   private async executeToolCall(call: CollectedToolCall): Promise<string> {
-    if (call.name !== 'recherche_web') {
-      return JSON.stringify({ error: `Outil « ${call.name} » inconnu.` });
+    if (call.name === 'recherche_web') {
+      return this.executeWebSearch(call);
     }
+    if (call.name === 'recherche_base') {
+      return this.executeDbSearch(call);
+    }
+    return JSON.stringify({ error: `Outil « ${call.name} » inconnu.` });
+  }
 
+  private async executeWebSearch(call: CollectedToolCall): Promise<string> {
     let query = '';
     try {
       const parsed = JSON.parse(call.arguments || '{}') as { query?: string };
@@ -432,6 +459,34 @@ export class OriziaService implements OnModuleInit, OnApplicationBootstrap {
       );
       return JSON.stringify({
         error: `Recherche web impossible pour l'instant : ${(error as Error).message}`,
+      });
+    }
+  }
+
+  private async executeDbSearch(call: CollectedToolCall): Promise<string> {
+    let query = '';
+    try {
+      const parsed = JSON.parse(call.arguments || '{}') as { query?: string };
+      query = typeof parsed.query === 'string' ? parsed.query.trim() : '';
+    } catch {
+      query = '';
+    }
+    if (!query) {
+      return JSON.stringify({ error: 'Requête de recherche manquante.' });
+    }
+
+    try {
+      const results = await this.dbSearchTool.search(query, this.webSearchMaxResults);
+      if (!results.length) {
+        return JSON.stringify({ error: 'Aucun résultat trouvé dans la base.', query });
+      }
+      return JSON.stringify({ query, results });
+    } catch (error) {
+      this.logger.warn(
+        `Recherche base échouée (« ${query.slice(0, 60)} ») : ${(error as Error).message}`,
+      );
+      return JSON.stringify({
+        error: `Recherche base impossible pour l'instant : ${(error as Error).message}`,
       });
     }
   }
@@ -735,7 +790,7 @@ ${dynamic}
     messages: CompletionMessage[],
     onChunk: (text: string) => void,
   ): Promise<void> {
-    const tools = this.webSearchEnabled ? [WEB_TOOL_SCHEMA] : [];
+    const tools = this.webSearchEnabled ? [WEB_TOOL_SCHEMA, DB_TOOL_SCHEMA] : [];
     const models = this.orderedModels();
     const failures: string[] = [];
 

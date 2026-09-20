@@ -66,6 +66,10 @@ export class SegmentsDto {
   @IsOptional()
   @IsBoolean()
   donations?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recruitments?: boolean;
 }
 
 export class LandingSectionTextDto {
@@ -104,6 +108,11 @@ export class LandingSectionsDto {
   @ValidateNested()
   @Type(() => LandingSectionTextDto)
   donations?: LandingSectionTextDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  recruitments?: LandingSectionTextDto;
 }
 
 export class HoverMenuItemDto {
