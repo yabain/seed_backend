@@ -12,7 +12,10 @@ import { CreateProspectDto, UpdateProspectDto } from './dto/prospect.dto';
 import { MailService } from '../mail/mail.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { SiteService } from '../site/site.service';
-import { emailSocialFromEnv } from '../../common/utils/email-social.util';
+import {
+  emailSocialFromSiteConfig,
+  emailLogoFromSiteConfig,
+} from '../../common/utils/email-social.util';
 
 export interface ProspectItem {
   id: string;
@@ -250,9 +253,9 @@ export class ProspectsService {
 
     const siteConfig = await this.siteService.getPublicConfig();
     const branding = {
-      logo: siteConfig.logo,
+      logo: emailLogoFromSiteConfig(siteConfig, this.configService),
       orgName: siteConfig.orgName,
-      social: emailSocialFromEnv(this.configService),
+      social: emailSocialFromSiteConfig(siteConfig, this.configService),
     };
 
     const html = renderEmailLayout({

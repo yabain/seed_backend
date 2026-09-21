@@ -29,7 +29,10 @@ import { MailService } from '../mail/mail.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { SiteService } from '../site/site.service';
-import { emailSocialFromEnv } from '../../common/utils/email-social.util';
+import {
+  emailSocialFromSiteConfig,
+  emailLogoFromSiteConfig,
+} from '../../common/utils/email-social.util';
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
@@ -72,11 +75,12 @@ export class AuthService {
     private readonly siteService: SiteService,
   ) {}
 
-  private emailBranding(orgName?: string) {
+  private async emailBranding(orgName?: string) {
+    const siteConfig = await this.siteService.getPublicConfig();
     return {
-      logo: this.configService.get<string>('EMAIL_LOGO_URL')?.trim() || '',
-      orgName: orgName?.trim() || 'Organisation',
-      social: emailSocialFromEnv(this.configService),
+      logo: emailLogoFromSiteConfig(siteConfig, this.configService),
+      orgName: orgName?.trim() || siteConfig.orgName?.trim() || 'Organisation',
+      social: emailSocialFromSiteConfig(siteConfig, this.configService),
     };
   }
 
@@ -128,7 +132,7 @@ export class AuthService {
   private async sendCodeEmail(to: string, code: string): Promise<boolean> {
     const siteConfig = await this.siteService.getPublicConfig();
     const orgName = siteConfig.orgName?.trim() || 'Organisation';
-    const branding = this.emailBranding(siteConfig.orgName);
+    const branding = await this.emailBranding(siteConfig.orgName);
 
     const html = renderEmailLayout({
       title: 'Votre code de connexion',
@@ -816,7 +820,7 @@ export class AuthService {
 
     const siteConfig = await this.siteService.getPublicConfig();
     const orgName = siteConfig.orgName?.trim() || 'Organisation';
-    const branding = this.emailBranding(siteConfig.orgName);
+    const branding = await this.emailBranding(siteConfig.orgName);
 
     const html = renderEmailLayout({
       title: 'Réinitialisation de votre mot de passe',
@@ -943,7 +947,7 @@ export class AuthService {
 
     const siteConfig = await this.siteService.getPublicConfig();
     const orgName = siteConfig.orgName?.trim() || 'Organisation';
-    const branding = this.emailBranding(siteConfig.orgName);
+    const branding = await this.emailBranding(siteConfig.orgName);
 
     const html = renderEmailLayout({
       title: 'Votre mot de passe a été modifié',

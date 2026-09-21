@@ -35,7 +35,10 @@ import {
   recruitmentApplicationRejectedTemplate,
 } from '../mail/templates/recruitment.templates';
 import { SiteService } from '../site/site.service';
-import { emailSocialFromEnv } from '../../common/utils/email-social.util';
+import {
+  emailSocialFromSiteConfig,
+  emailLogoFromSiteConfig,
+} from '../../common/utils/email-social.util';
 
 const DEFAULT_FIELD_KEYS = new Set(['email', 'last_name', 'first_name']);
 
@@ -828,9 +831,9 @@ export class RecruitmentsService {
   ): Promise<void> {
     const siteConfig = await this.siteService.getPublicConfig();
     const branding = {
-      logo: this.siteService.resolveMediaUrl(siteConfig.logo),
+      logo: this.siteService.resolveMediaUrl(emailLogoFromSiteConfig(siteConfig, this.configService)),
       orgName: siteConfig.orgName,
-      social: emailSocialFromEnv(this.configService),
+      social: emailSocialFromSiteConfig(siteConfig, this.configService),
     };
     const colors = {
       primary: siteConfig.primaryColor,
@@ -891,9 +894,9 @@ export class RecruitmentsService {
 
     const siteConfig = await this.siteService.getPublicConfig();
     const branding = {
-      logo: this.siteService.resolveMediaUrl(siteConfig.logo),
+      logo: this.siteService.resolveMediaUrl(emailLogoFromSiteConfig(siteConfig, this.configService)),
       orgName: siteConfig.orgName,
-      social: emailSocialFromEnv(this.configService),
+      social: emailSocialFromSiteConfig(siteConfig, this.configService),
     };
     const colors = {
       primary: siteConfig.primaryColor,

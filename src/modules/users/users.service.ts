@@ -22,7 +22,10 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { MailService } from '../mail/mail.service';
 import { SiteService } from '../site/site.service';
 import { accountCredentialsTemplate } from '../mail/templates/account.templates';
-import { emailSocialFromEnv } from '../../common/utils/email-social.util';
+import {
+  emailSocialFromSiteConfig,
+  emailLogoFromSiteConfig,
+} from '../../common/utils/email-social.util';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   user: 'Utilisateur',
@@ -383,10 +386,9 @@ export class UsersService {
             secondary: siteConfig.secondaryColor,
           },
           branding: {
-            logo:
-              this.configService.get<string>('EMAIL_LOGO_URL')?.trim() || '',
+            logo: emailLogoFromSiteConfig(siteConfig, this.configService),
             orgName: siteConfig.orgName,
-            social: emailSocialFromEnv(this.configService),
+            social: emailSocialFromSiteConfig(siteConfig, this.configService),
           },
         }),
       });

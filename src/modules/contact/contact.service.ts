@@ -16,7 +16,10 @@ import {
   type ContactTemplateOptions,
 } from '../mail/templates/contact.templates';
 import { SiteService } from '../site/site.service';
-import { emailSocialFromEnv } from '../../common/utils/email-social.util';
+import {
+  emailSocialFromSiteConfig,
+  emailLogoFromSiteConfig,
+} from '../../common/utils/email-social.util';
 
 @Injectable()
 export class ContactService {
@@ -50,9 +53,9 @@ export class ContactService {
 
     const siteConfig = await this.siteService.getPublicConfig();
     const branding: ContactTemplateOptions['branding'] = {
-      logo: this.siteService.resolveMediaUrl(siteConfig.logo),
+      logo: this.siteService.resolveMediaUrl(emailLogoFromSiteConfig(siteConfig, this.configService)),
       orgName: siteConfig.orgName,
-      social: emailSocialFromEnv(this.configService),
+      social: emailSocialFromSiteConfig(siteConfig, this.configService),
     };
     const colors: ContactTemplateOptions['colors'] = {
       primary: siteConfig.primaryColor,
