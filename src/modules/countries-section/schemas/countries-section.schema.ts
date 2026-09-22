@@ -13,6 +13,9 @@ export class CountryItem {
 
   @Prop({ default: '' })
   subtitle: string;
+
+  @Prop({ default: '' })
+  route?: string;
 }
 
 export const CountryItemSchema = SchemaFactory.createForClass(CountryItem);

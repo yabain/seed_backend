@@ -44,6 +44,7 @@ export class CountriesSectionService {
         image: c.image ?? '',
         title: c.title ?? '',
         subtitle: c.subtitle ?? '',
+        route: c.route ?? '',
       }));
     }
     await section.save();

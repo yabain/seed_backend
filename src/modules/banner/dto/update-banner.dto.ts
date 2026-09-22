@@ -27,6 +27,16 @@ export class BannerSlideDto {
   @IsOptional()
   @IsString()
   image?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  ctaLabel?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  ctaRoute?: string;
 }
 
 export class BannerFigureDto {

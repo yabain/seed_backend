@@ -22,6 +22,11 @@ export class CountryItemDto {
   @IsString()
   @MaxLength(500)
   subtitle?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  route?: string;
 }
 
 export class UpdateCountriesSectionDto {

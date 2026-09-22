@@ -16,6 +16,12 @@ export class BannerSlide {
 
   @Prop({ default: '' })
   image: string;
+
+  @Prop({ default: '' })
+  ctaLabel: string;
+
+  @Prop({ default: '' })
+  ctaRoute: string;
 }
 
 export const BannerSlideSchema = SchemaFactory.createForClass(BannerSlide);
@@ -29,11 +35,13 @@ export class BannerFigure {
 export const BannerFigureSchema = SchemaFactory.createForClass(BannerFigure);
 
 const defaultSlides = (): BannerSlide[] =>
-  Array.from({ length: 3 }, () => ({
+  Array.from({ length: 5 }, () => ({
     eyebrow: '',
     title: '',
     subtitle: '',
     image: '',
+    ctaLabel: '',
+    ctaRoute: '',
   }));
 
 @Schema({

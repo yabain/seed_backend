@@ -31,6 +31,8 @@ export class BannerService {
       title: slide.title ?? '',
       subtitle: slide.subtitle ?? '',
       image: slide.image ?? '',
+      ctaLabel: slide.ctaLabel ?? '',
+      ctaRoute: slide.ctaRoute ?? '',
     }));
     banner.fixedText = dto.fixedText ?? '';
     banner.rotatingPhrases = (dto.rotatingPhrases ?? []).slice(0, 10);
