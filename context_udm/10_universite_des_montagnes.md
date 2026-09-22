@@ -117,7 +117,7 @@ TODO — organes de gouvernance et responsables institutionnels.
 *Ne renseignez ici que les personnes dont la fonction est publique.*
 
 ## 11. Actualités et événements
-Les actualités et événements publiés sur le site sont fournis automatiquement à Orizia
+Les actualités et événements publiés sur le site sont fournis automatiquement à AEDIA
 depuis la base de données : **il est inutile de les recopier ici**.
 
 ## 12. Contacts officiels
@@ -127,7 +127,7 @@ depuis la base de données : **il est inutile de les recopier ici**.
 - **Centre virtuel (CEV) :** https://cev.udm.cm
 - **Téléphones (info-line) :** +237 691 144 897 / +237 652 32 08 10 (appels et WhatsApp)
 *Les coordonnées saisies dans la configuration du site sont également transmises
-automatiquement à Orizia.*
+automatiquement à AEDIA.*
 
 ## 13. Questions fréquentes (FAQ officielle)
 TODO — questions/réponses validées par l'administration. C'est la section la plus utile :

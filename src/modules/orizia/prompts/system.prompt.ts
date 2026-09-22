@@ -1,5 +1,5 @@
 /**
- * Cadre technique du prompt système d'ORIZIA.
+ * Cadre technique du prompt système d'AEDIA.
  *
  * Le contenu « métier » — identité, périmètre limité à l'Université des
  * Montagnes, règles de confidentialité des données, règles anti-hallucination,
@@ -10,7 +10,7 @@
  * Ce prompt ne fait donc qu'assembler et cadrer les blocs, pour éviter toute
  * contradiction avec les règles du contexte institutionnel.
  */
-export const ORIZIA_BASE_PROMPT = `Tu es ORIZIA, l'intelligence artificielle des sommets, l'assistant officiel de l'Université des Montagnes (UdM).
+export const ORIZIA_BASE_PROMPT = `Tu es AEDIA, l'intelligence artificielle des sommets, l'assistant officiel de l'Université des Montagnes (UdM).
 
 Trois blocs de contexte te sont fournis, et rien d'autre :
 

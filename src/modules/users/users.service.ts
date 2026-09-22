@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -128,6 +129,34 @@ export class UsersService {
       createdAt:
         (withoutPassword.createdAt as string) ?? new Date().toISOString(),
     };
+  }
+
+  /**
+   * Réservé au super administrateur : une action qui touche un compte super
+   * administrateur (création, modification, mot de passe, statut, suppression)
+   * est refusée pour tout autre rôle. Un acteur sans rôle (appel interne)
+   * est autorisé à passer.
+   */
+  private requireSuperadmin(
+    actor: UserActor | undefined,
+    reason: string,
+  ): void {
+    if (actor && actor.role !== 'superadmin') {
+      throw new ForbiddenException(
+        `Action réservée au super administrateur : ${reason}.`,
+      );
+    }
+  }
+
+  private async assertTargetAccountRole(id: string): Promise<UserRole> {
+    if (!isValidObjectId(id)) {
+      throw new NotFoundException('Compte introuvable');
+    }
+    const target = await this.adminModel.findById(id).lean().exec();
+    if (!target) {
+      throw new NotFoundException('Compte introuvable');
+    }
+    return target.role ?? 'user';
   }
 
   async getStats(): Promise<UserStats> {
@@ -304,6 +333,10 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto, actor?: UserActor) {
+    if (dto.role === 'superadmin') {
+      this.requireSuperadmin(actor, 'créer un compte super administrateur');
+    }
+
     const existing = await this.adminModel
       .findOne({ email: dto.email.toLowerCase().trim() })
       .exec();
@@ -410,6 +443,11 @@ export class UsersService {
       throw new NotFoundException('Compte introuvable');
     }
 
+    const targetRole = await this.assertTargetAccountRole(id);
+    if (targetRole === 'superadmin' || dto.role === 'superadmin') {
+      this.requireSuperadmin(actor, 'gérer un compte super administrateur');
+    }
+
     const updateData: Record<string, unknown> = { ...dto };
     if (dto.email) {
       updateData.email = dto.email.toLowerCase().trim();
@@ -456,6 +494,15 @@ export class UsersService {
     if (!isValidObjectId(id)) {
       throw new NotFoundException('Compte introuvable');
     }
+
+    const targetRole = await this.assertTargetAccountRole(id);
+    if (targetRole === 'superadmin') {
+      this.requireSuperadmin(
+        actor,
+        'réinitialiser le mot de passe d’un compte super administrateur',
+      );
+    }
+
     const hashed = await bcrypt.hash(dto.password, 10);
     const admin = await this.adminModel
       .findByIdAndUpdate(id, { password: hashed }, { new: true })
@@ -489,6 +536,10 @@ export class UsersService {
         'Vous ne pouvez pas supprimer votre propre compte.',
       );
     }
+    const targetRole = await this.assertTargetAccountRole(id);
+    if (targetRole === 'superadmin') {
+      this.requireSuperadmin(actor, 'supprimer un compte super administrateur');
+    }
     const result = await this.adminModel.findByIdAndDelete(id).lean().exec();
     if (!result) {
       throw new NotFoundException('Compte introuvable');
@@ -516,6 +567,14 @@ export class UsersService {
     const admin = await this.adminModel.findById(id).lean().exec();
     if (!admin) {
       throw new NotFoundException('Compte introuvable');
+    }
+
+    const targetRole = admin.role ?? 'user';
+    if (targetRole === 'superadmin') {
+      this.requireSuperadmin(
+        actor,
+        'modifier le statut d’un compte super administrateur',
+      );
     }
 
     await this.adminModel.findByIdAndUpdate(id, { isActive }).exec();

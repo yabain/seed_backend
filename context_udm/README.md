@@ -1,4 +1,4 @@
-# Répertoire de contexte d'ORIZIA
+# Répertoire de contexte d'AEDIA
 
 Ce répertoire contient **les sources de vérité** d'Orizia. Tout ce qui s'y trouve est
 injecté dans son contexte à chaque question : c'est ce qui limite drastiquement les
