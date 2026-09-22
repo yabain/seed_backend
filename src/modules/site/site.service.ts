@@ -14,7 +14,7 @@ import {
 import { resolvePublicMediaUrl } from '../../utils/public-media-url.util';
 import { CryptService } from '../crypt/crypt.service';
 
-const MEDIA_KEYS: readonly string[] = ['logo', 'favicon', 'ogImage'];
+const MEDIA_KEYS: readonly string[] = ['logo', 'footerLogo', 'favicon', 'ogImage'];
 const ORIZIA_MEDIA_KEYS: readonly string[] = ['logo', 'welcomeImage'];
 
 const COLOR_KEYS: readonly string[] = ['primaryColor', 'secondaryColor'];
@@ -24,6 +24,7 @@ const SCALAR_KEYS = [
   'tagline',
   'description',
   'logo',
+  'footerLogo',
   'favicon',
   'ogImage',
   'heroTitle',
@@ -41,6 +42,7 @@ const DEFAULT_CONFIG = {
   tagline: '',
   description: '',
   logo: '',
+  footerLogo: '',
   favicon: '',
   ogImage: '',
   heroTitle: '',
