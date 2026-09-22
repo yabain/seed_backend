@@ -40,4 +40,8 @@ export class CreateImpactDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isVisibleOnLanding?: boolean;
 }

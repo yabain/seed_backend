@@ -61,6 +61,10 @@ export class SiteConfig {
   @Prop({ default: '' })
   logo: string;
 
+  /** Logo du pied de page, distinct du logo principal (navbar). */
+  @Prop({ default: '' })
+  footerLogo: string;
+
   @Prop({ default: '' })
   favicon: string;
 
@@ -123,6 +127,36 @@ export class SiteConfig {
     default: {},
   })
   segments: {
+    news: boolean;
+    resources: boolean;
+    programs: boolean;
+    partners: boolean;
+    events: boolean;
+    team: boolean;
+    donations: boolean;
+    recruitments: boolean;
+  };
+
+  /**
+   * Visibilité du titre dans la navbar du front office, découplée de la
+   * section landing correspondante (`segments`). L'application retombe sur
+   * `segments` lorsque la valeur n'est pas renseignée, pour préserver le
+   * comportement historique.
+   */
+  @Prop({
+    type: {
+      news: { type: Boolean, default: true },
+      resources: { type: Boolean, default: true },
+      programs: { type: Boolean, default: true },
+      partners: { type: Boolean, default: true },
+      events: { type: Boolean, default: true },
+      team: { type: Boolean, default: true },
+      donations: { type: Boolean, default: true },
+      recruitments: { type: Boolean, default: true },
+    },
+    default: {},
+  })
+  navVisibility: {
     news: boolean;
     resources: boolean;
     programs: boolean;

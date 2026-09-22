@@ -129,6 +129,10 @@ export class CreateRecruitmentCampaignDto {
   @Type(() => RecruitmentDownloadableFileDto)
   downloadableFile?: RecruitmentDownloadableFileDto;
 
+  @IsOptional()
+  @IsBoolean()
+  isVisibleOnLanding?: boolean;
+
   @IsArray({ message: 'Le formulaire doit contenir une liste de champs.' })
   @ValidateNested({ each: true })
   @Type(() => RecruitmentFormFieldDto)

@@ -31,6 +31,9 @@ export class Impact {
 
   @Prop({ default: true })
   isActive: boolean;
+
+  @Prop({ default: false })
+  isVisibleOnLanding: boolean;
 }
 
 export const ImpactSchema = SchemaFactory.createForClass(Impact);

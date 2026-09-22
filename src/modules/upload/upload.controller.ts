@@ -18,12 +18,17 @@ import { deleteUploadFile } from '../../common/utils/upload-file.util';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-const MIME_EXT: Record<string, string> = {
+const RAW_EXT: Record<string, string> = {
   'image/webp': 'webp',
-  'image/jpeg': 'webp',
-  'image/png': 'webp',
-  'image/gif': 'webp',
-  'image/svg+xml': 'webp',
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/gif': 'gif',
+  'image/svg+xml': 'svg',
+  'image/bmp': 'bmp',
+  'image/avif': 'avif',
+  'image/x-icon': 'ico',
+  'image/tiff': 'tiff',
 };
 
 interface UploadedFileLike {
@@ -33,6 +38,11 @@ interface UploadedFileLike {
 
 interface UploadBody {
   oldPath?: string;
+  /**
+   * 'false' conserve le format d'origine (extension + contenu bruts),
+   * réservé au logo du site et aux images animées (GIF) non convertibles.
+   */
+  convert?: string;
 }
 
 /**
@@ -62,7 +72,10 @@ export class UploadController {
       throw new BadRequestException('Le fichier doit être une image.');
     }
 
-    const extension = MIME_EXT[file.mimetype] ?? 'webp';
+    const convert = body.convert !== 'false' && body.convert !== '0';
+    const extension = convert
+      ? 'webp'
+      : (RAW_EXT[file.mimetype] ?? file.mimetype.split('/')[1] ?? 'img');
     const name = `${Date.now()}-${randomBytes(4).toString('hex')}.${extension}`;
 
     const uploadDir = resolveUploadDir();

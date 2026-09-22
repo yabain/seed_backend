@@ -136,6 +136,12 @@ export class RecruitmentsController {
     return this.recruitmentsService.findPublicCampaigns(query);
   }
 
+  @Public()
+  @Get('landing')
+  findVisibleOnLanding(@Query('limit') limit?: number) {
+    return this.recruitmentsService.findVisibleOnLanding(limit ? Number(limit) : 10);
+  }
+
   // ---------- Back-office ----------
   @Get('admin/all')
   @Roles('admin', 'superadmin')

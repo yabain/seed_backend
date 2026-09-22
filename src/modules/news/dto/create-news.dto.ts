@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -51,4 +52,8 @@ export class CreateNewsDto {
     message: 'Statut invalide (draft ou published)',
   })
   status?: NewsStatus;
+
+  @IsOptional()
+  @IsBoolean()
+  isVisibleOnLanding?: boolean;
 }

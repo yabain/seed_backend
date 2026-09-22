@@ -104,6 +104,9 @@ export class RecruitmentCampaign {
 
   @Prop({ default: '' })
   duplicatedFrom: string;
+
+  @Prop({ default: false })
+  isVisibleOnLanding: boolean;
 }
 
 export const RecruitmentCampaignSchema =

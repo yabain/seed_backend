@@ -134,6 +134,15 @@ export class RecruitmentsService {
     return { items, total, page, limit };
   }
 
+  async findVisibleOnLanding(limit = 10): Promise<RecruitmentCampaign[]> {
+    return this.campaignModel
+      .find({ status: 'published', isVisibleOnLanding: true })
+      .sort({ startsAt: -1, createdAt: -1 })
+      .limit(limit)
+      .lean()
+      .exec();
+  }
+
   async findAdminCampaigns(query: {
     page?: number;
     limit?: number;

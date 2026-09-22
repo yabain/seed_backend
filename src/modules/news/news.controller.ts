@@ -34,6 +34,12 @@ export class NewsController {
   }
 
   @Public()
+  @Get('landing')
+  findVisibleOnLanding(@Query('limit') limit?: number) {
+    return this.newsService.findVisibleOnLanding(limit ? Number(limit) : 10);
+  }
+
+  @Public()
   @Get('slug/:slug')
   findOneBySlug(@Param('slug') slug: string) {
     return this.newsService.findOneBySlug(slug);

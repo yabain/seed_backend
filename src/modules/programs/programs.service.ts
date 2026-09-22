@@ -37,6 +37,15 @@ export class ProgramsService {
       .exec();
   }
 
+  async findVisibleOnLanding(limit = 10): Promise<Program[]> {
+    return this.programModel
+      .find({ isActive: true, isVisibleOnLanding: true })
+      .sort({ order: 1, createdAt: -1 })
+      .limit(limit)
+      .lean()
+      .exec();
+  }
+
   async findAll(query: {
     page?: number;
     limit?: number;

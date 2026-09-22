@@ -38,6 +38,40 @@ export class SocialDto {
   youtube?: string;
 }
 
+export class NavVisibilityDto {
+  @IsOptional()
+  @IsBoolean()
+  news?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  resources?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  programs?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  partners?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  events?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  team?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  donations?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  recruitments?: boolean;
+}
+
 export class SegmentsDto {
   @IsOptional()
   @IsBoolean()
@@ -108,11 +142,14 @@ export class LandingSectionsDto {
   @ValidateNested()
   @Type(() => LandingSectionTextDto)
   donations?: LandingSectionTextDto;
-
   @IsOptional()
   @ValidateNested()
   @Type(() => LandingSectionTextDto)
   recruitments?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  newsletter?: LandingSectionTextDto;
 }
 
 export class HoverMenuItemDto {
@@ -191,6 +228,10 @@ export class UpdateSiteConfigDto {
 
   @IsOptional()
   @IsString()
+  footerLogo?: string;
+
+  @IsOptional()
+  @IsString()
   favicon?: string;
 
   @IsOptional()
@@ -245,6 +286,11 @@ export class UpdateSiteConfigDto {
 
   @IsOptional()
   segments?: SegmentsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NavVisibilityDto)
+  navVisibility?: NavVisibilityDto;
 
   @IsOptional()
   @ValidateNested()

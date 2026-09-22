@@ -37,6 +37,15 @@ export class ImpactsService {
       .exec();
   }
 
+  async findVisibleOnLanding(limit = 10): Promise<Impact[]> {
+    return this.impactModel
+      .find({ isActive: true, isVisibleOnLanding: true })
+      .sort({ order: 1, createdAt: -1 })
+      .limit(limit)
+      .lean()
+      .exec();
+  }
+
   async findAll(query: {
     page?: number;
     limit?: number;

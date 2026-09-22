@@ -558,7 +558,10 @@ export class AuthService {
     dto: GoogleLoginDto,
     ip?: string,
     userAgent?: string,
-  ): Promise<{ accessToken: string; admin: object }> {
+  ): Promise<
+    | { accessToken: string; admin: object }
+    | { requiresTwoFactor: true; email: string; message: string }
+  > {
     const googleUser = await this.verifyGoogleIdToken(dto.idToken);
     const email = (googleUser.email ?? '').toLowerCase().trim();
     if (!email) {
@@ -611,14 +614,15 @@ export class AuthService {
       avatar: googleUser.picture || admin.avatar || undefined,
     });
 
+    await this.issueLoginTwoFactorChallenge(admin);
+
     await this.auditLogService.record({
       actorId: String(admin._id),
       actorEmail: admin.email,
       actorRole: admin.role,
-      action: 'auth.login',
+      action: 'auth.two_factor_challenge_sent',
       resourceType: 'admin',
       resourceId: String(admin._id),
-      resourceLabel: admin.email,
       metadata: { via: 'google', ip },
       method: 'POST',
       path: '/admin/auth/google',
@@ -627,21 +631,10 @@ export class AuthService {
       userAgent,
     });
 
-    const payload = {
-      sub: admin._id.toString(),
-      email: admin.email,
-      role: admin.role,
-    };
-
     return {
-      accessToken: await this.jwtService.signAsync(payload),
-      admin: {
-        id: admin._id.toString(),
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-        avatar: googleUser.picture || admin.avatar || undefined,
-      },
+      requiresTwoFactor: true,
+      email: admin.email,
+      message: 'Un code de vérification a été envoyé à votre adresse e-mail.',
     };
   }
 

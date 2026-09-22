@@ -31,6 +31,9 @@ export class Program {
 
   @Prop({ default: true })
   isActive: boolean;
+
+  @Prop({ default: false })
+  isVisibleOnLanding: boolean;
 }
 
 export const ProgramSchema = SchemaFactory.createForClass(Program);

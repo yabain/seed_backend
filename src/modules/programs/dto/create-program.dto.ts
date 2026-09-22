@@ -41,4 +41,8 @@ export class CreateProgramDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isVisibleOnLanding?: boolean;
 }

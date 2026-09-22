@@ -147,6 +147,15 @@ export class NewsService {
       .exec();
   }
 
+  async findVisibleOnLanding(limit = 10): Promise<News[]> {
+    return this.newsModel
+      .find({ status: 'published', isVisibleOnLanding: true })
+      .sort({ publishedAt: -1 })
+      .limit(limit)
+      .lean()
+      .exec();
+  }
+
   async findOne(id: string): Promise<News> {
     const realId = this.ensureId(id);
     const news = await this.newsModel.findById(realId).lean().exec();

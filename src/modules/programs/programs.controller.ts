@@ -24,6 +24,12 @@ export class ProgramsController {
     return this.programsService.findAllPublic();
   }
 
+  @Public()
+  @Get('landing')
+  findVisibleOnLanding(@Query('limit') limit?: number) {
+    return this.programsService.findVisibleOnLanding(limit ? Number(limit) : 10);
+  }
+
   @Get('all')
   @Roles('admin', 'superadmin')
   findAll(@Query() query: { page?: number; limit?: number; search?: string }) {

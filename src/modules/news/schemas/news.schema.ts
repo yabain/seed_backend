@@ -37,6 +37,9 @@ export class News {
   @Prop({ enum: ['draft', 'published'], default: 'draft' })
   status: NewsStatus;
 
+  @Prop({ default: false })
+  isVisibleOnLanding: boolean;
+
   @Prop()
   publishedAt: Date;
 }
