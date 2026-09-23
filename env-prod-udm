@@ -69,6 +69,12 @@ EMAIL_SOCIAL_LINKEDIN=https://www.linkedin.com/company/universit-des-montagnes
 EMAIL_SOCIAL_TWITTER=https://x.com/des_officiel
 EMAIL_SOCIAL_YOUTUBE=
 
+# --- Contenus de démonstration ---
+# « true » : le compte admin et la config du site restent créés au premier
+# lancement, mais plus aucun contenu de démonstration (actualités, ressources,
+# programmes, partenaires) n'est inséré.
+SEED_DISABLED=true
+
 # ============================================================
 #  ORIZIA — assistant IA public (front office, sans compte)
 #  Mêmes paramètres que Merlin (projet eat-app), adaptés à seed.

@@ -36,8 +36,25 @@ export class SeedService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     this.logger.log('Vérification des données initiales…');
+
+    // `SEED_DISABLED=true` : seul le compte administrateur et la configuration
+    // du site sont garantis au premier lancement ; les contenus de démonstration
+    // (actualités, ressources, programmes, partenaires) ne sont plus créés.
+    const seedDisabled =
+      this.configService.get<string>('SEED_DISABLED') === 'true';
+    if (seedDisabled) {
+      this.logger.warn(
+        'Données de démonstration désactivées (SEED_DISABLED=true)',
+      );
+    }
+
     await this.seedAdmin();
     await this.seedSiteConfig();
+
+    if (seedDisabled) {
+      return;
+    }
+
     await this.seedNews();
     await this.seedResources();
     await this.seedPrograms();
