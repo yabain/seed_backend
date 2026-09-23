@@ -35,6 +35,19 @@ const ROLE_LABELS: Record<UserRole, string> = {
   superadmin: 'Super administrateur',
 };
 
+/** Agrège les parties du nom en un nom complet lisible. */
+function fullName(
+  firstName?: string | null,
+  lastName?: string | null,
+  fallback?: string | null,
+): string {
+  const parts = [firstName?.trim(), lastName?.trim()].filter(Boolean);
+  if (parts.length) {
+    return parts.join(' ');
+  }
+  return fallback?.trim() ?? '';
+}
+
 export interface UserActor {
   id: string;
   email?: string;
@@ -63,6 +76,8 @@ export interface UsersListResult {
   data: Array<{
     id: string;
     name: string;
+    firstName?: string;
+    lastName?: string;
     email: string;
     phone?: string;
     avatar?: string;
@@ -88,6 +103,8 @@ export interface UserLogEntry {
 export interface SanitizedAdmin {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
   avatar?: string;
@@ -115,9 +132,17 @@ export class UsersService {
     const { _id, ...rest } = admin;
     const withoutPassword = { ...rest };
     delete withoutPassword.password;
+    const firstName = withoutPassword.firstName as string | undefined;
+    const lastName = withoutPassword.lastName as string | undefined;
     return {
       id: String(_id),
-      name: (withoutPassword.name as string) ?? '',
+      name: fullName(
+        firstName,
+        lastName,
+        (withoutPassword.name as string) ?? '',
+      ),
+      firstName,
+      lastName,
       email: (withoutPassword.email as string) ?? '',
       phone: withoutPassword.phone as string | undefined,
       avatar: (withoutPassword.avatar as string | undefined) || undefined,
@@ -197,6 +222,8 @@ export class UsersService {
     if (trimmedSearch) {
       filter.$or = [
         { name: { $regex: trimmedSearch, $options: 'i' } },
+        { firstName: { $regex: trimmedSearch, $options: 'i' } },
+        { lastName: { $regex: trimmedSearch, $options: 'i' } },
         { email: { $regex: trimmedSearch, $options: 'i' } },
       ];
     }
@@ -345,8 +372,12 @@ export class UsersService {
     }
 
     const hashed = await bcrypt.hash(dto.password, 10);
+    const firstName = dto.firstName?.trim() ?? '';
+    const lastName = dto.lastName?.trim() ?? '';
     const created = await this.adminModel.create({
-      name: dto.name.trim(),
+      firstName,
+      lastName,
+      name: fullName(firstName, lastName, dto.name) || firstName,
       email: dto.email.toLowerCase().trim(),
       password: hashed,
       phone: dto.phone ?? '',
@@ -460,6 +491,17 @@ export class UsersService {
     }
     if (dto.password) {
       updateData.password = await bcrypt.hash(dto.password, 10);
+    }
+    // Recompose `name` à partir des parties mises à jour.
+    if (dto.firstName !== undefined || dto.lastName !== undefined) {
+      const current = await this.adminModel.findById(id).lean().exec();
+      const firstName = dto.firstName?.trim() ?? current?.firstName ?? '';
+      const lastName = dto.lastName?.trim() ?? current?.lastName ?? '';
+      updateData.firstName = firstName;
+      updateData.lastName = lastName;
+      updateData.name =
+        fullName(firstName, lastName, current?.name ?? undefined) ||
+        (dto.name?.trim() ?? '');
     }
 
     const admin = await this.adminModel

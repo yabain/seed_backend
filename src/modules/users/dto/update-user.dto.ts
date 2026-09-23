@@ -15,6 +15,16 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  lastName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
   name?: string;
 
   @IsOptional()

@@ -552,16 +552,14 @@ export class AuthService {
    * par adresse e-mail vérifiée (aucune création de compte).
    *
    * La 2FA par code e-mail est ignorée : Google est considéré comme un second
-   * facteur d'authentification fiable.
+   * facteur d'authentification fiable. L'utilisateur est donc connecté
+   * directement au dashboard.
    */
   async googleLogin(
     dto: GoogleLoginDto,
     ip?: string,
     userAgent?: string,
-  ): Promise<
-    | { accessToken: string; admin: object }
-    | { requiresTwoFactor: true; email: string; message: string }
-  > {
+  ): Promise<{ accessToken: string; admin: object }> {
     const googleUser = await this.verifyGoogleIdToken(dto.idToken);
     const email = (googleUser.email ?? '').toLowerCase().trim();
     if (!email) {
@@ -614,16 +612,20 @@ export class AuthService {
       avatar: googleUser.picture || admin.avatar || undefined,
     });
 
-    await this.issueLoginTwoFactorChallenge(admin);
+    const payload = {
+      sub: admin._id.toString(),
+      email: admin.email,
+      role: admin.role,
+    };
 
     await this.auditLogService.record({
       actorId: String(admin._id),
       actorEmail: admin.email,
       actorRole: admin.role,
-      action: 'auth.two_factor_challenge_sent',
+      action: 'auth.login',
       resourceType: 'admin',
       resourceId: String(admin._id),
-      metadata: { via: 'google', ip },
+      resourceLabel: admin.email,
       method: 'POST',
       path: '/admin/auth/google',
       statusCode: 200,
@@ -632,9 +634,16 @@ export class AuthService {
     });
 
     return {
-      requiresTwoFactor: true,
-      email: admin.email,
-      message: 'Un code de vérification a été envoyé à votre adresse e-mail.',
+      accessToken: await this.jwtService.signAsync(payload),
+      admin: {
+        id: admin._id.toString(),
+        name: admin.name,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        email: admin.email,
+        role: admin.role,
+        avatar: admin.avatar || undefined,
+      },
     };
   }
 
@@ -694,6 +703,8 @@ export class AuthService {
     return {
       id: admin._id.toString(),
       name: admin.name,
+      firstName: admin.firstName,
+      lastName: admin.lastName,
       email: admin.email,
       phone: admin.phone || undefined,
       avatar: admin.avatar || undefined,
@@ -706,15 +717,35 @@ export class AuthService {
 
   async updateProfile(
     adminId: string,
-    data: { name?: string; phone?: string; avatar?: string },
+    data: {
+      firstName?: string;
+      lastName?: string;
+      name?: string;
+      phone?: string;
+      avatar?: string;
+    },
   ) {
     const admin = await this.adminModel.findById(adminId).exec();
     if (!admin) {
       throw new UnauthorizedException('Utilisateur introuvable.');
     }
 
+    if (data.firstName !== undefined) {
+      admin.firstName = data.firstName.trim();
+    }
+    if (data.lastName !== undefined) {
+      admin.lastName = data.lastName.trim();
+    }
     if (data.name !== undefined) {
       admin.name = data.name.trim();
+    }
+    if (data.firstName !== undefined || data.lastName !== undefined) {
+      const parts = [admin.firstName?.trim(), admin.lastName?.trim()].filter(
+        (p) => p,
+      );
+      if (parts.length) {
+        admin.name = parts.join(' ');
+      }
     }
     if (data.phone !== undefined) {
       admin.phone = data.phone?.trim() || undefined;
@@ -733,6 +764,8 @@ export class AuthService {
       admin: {
         id: admin._id.toString(),
         name: admin.name,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
         email: admin.email,
         phone: admin.phone || undefined,
         avatar: admin.avatar || undefined,

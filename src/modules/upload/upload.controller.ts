@@ -12,11 +12,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { randomBytes } from 'crypto';
 import { promises as fs } from 'fs';
+import sharp from 'sharp';
 import { join } from 'path';
 import { resolveUploadDir } from '../../common/utils/upload-dir.util';
 import { deleteUploadFile } from '../../common/utils/upload-file.util';
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+// 15 Mo : les photos HEIC/HEIF d'iPhone excèdent souvent les 5 Mo, il faut de la
+// marge pour les recevoir en entier avant conversion serveur.
+const MAX_IMAGE_SIZE = 15 * 1024 * 1024;
 
 const RAW_EXT: Record<string, string> = {
   'image/webp': 'webp',
@@ -29,6 +32,10 @@ const RAW_EXT: Record<string, string> = {
   'image/avif': 'avif',
   'image/x-icon': 'ico',
   'image/tiff': 'tiff',
+  // HEIC/HEIF : format photo par défaut des iPhone. Enregistrés tels quels quand
+  // `convert=false` (extension native), convertis en WebP par `sharp` sinon.
+  'image/heic': 'heic',
+  'image/heif': 'heif',
 };
 
 interface UploadedFileLike {
@@ -80,7 +87,25 @@ export class UploadController {
 
     const uploadDir = resolveUploadDir();
     await fs.mkdir(uploadDir, { recursive: true });
-    await fs.writeFile(join(uploadDir, name), file.buffer);
+
+    /*
+     * Les photos HEIC/HEIF des iPhone ne sont pas décodables par tous les
+     * navigateurs ; elles sont donc converties en WebP via `sharp` quand
+     * `convert=true` (défaut). En cas d'échec de décodage, on conserve le
+     * fichier brut avec son extension native pour ne jamais écrire un WebP
+     * corrompu.
+     */
+    let storedBuffer = file.buffer;
+    let effectiveExtension = extension;
+    if (convert && (file.mimetype === 'image/heic' || file.mimetype === 'image/heif')) {
+      try {
+        storedBuffer = await sharp(file.buffer).rotate().webp({ quality: 82 }).toBuffer();
+        effectiveExtension = 'webp';
+      } catch {
+        effectiveExtension = RAW_EXT[file.mimetype] ?? 'heic';
+      }
+    }
+    await fs.writeFile(join(uploadDir, name), storedBuffer as unknown as Buffer);
 
     if (body.oldPath) {
       await deleteUploadFile(body.oldPath);

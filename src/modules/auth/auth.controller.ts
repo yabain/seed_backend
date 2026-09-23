@@ -50,16 +50,9 @@ export class AuthController {
       ip,
       userAgent,
     );
-    if ('requiresTwoFactor' in result && result.requiresTwoFactor) {
-      return {
-        requiresTwoFactor: true,
-        email: result.email,
-      };
-    }
-    const loginResult = result as { accessToken: string; admin: object };
-    res.cookie(TOKEN_COOKIE_NAME, loginResult.accessToken, COOKIE_OPTIONS);
+    res.cookie(TOKEN_COOKIE_NAME, result.accessToken, COOKIE_OPTIONS);
     return {
-      admin: loginResult.admin,
+      admin: result.admin,
     };
   }
 

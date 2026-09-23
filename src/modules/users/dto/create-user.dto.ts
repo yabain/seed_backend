@@ -14,9 +14,19 @@ import type { UserRole } from '../../auth/schemas/admin.schema';
 
 export class CreateUserDto {
   @IsString()
-  @IsNotEmpty({ message: 'Le nom est obligatoire' })
+  @IsNotEmpty({ message: 'Le prénom est obligatoire' })
   @MaxLength(100)
-  name: string;
+  firstName: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'Le nom de famille est obligatoire' })
+  @MaxLength(100)
+  lastName: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  name?: string;
 
   @IsEmail({}, { message: 'Adresse e-mail invalide' })
   email: string;

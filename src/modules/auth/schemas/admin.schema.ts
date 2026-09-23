@@ -36,6 +36,12 @@ export class Admin {
   name: string;
 
   @Prop({ trim: true })
+  firstName?: string;
+
+  @Prop({ trim: true })
+  lastName?: string;
+
+  @Prop({ trim: true })
   phone?: string;
 
   @Prop({ trim: true })
