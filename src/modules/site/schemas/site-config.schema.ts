@@ -217,12 +217,43 @@ export class SiteConfig {
         description: { type: String, default: '' },
         buttonLabel: { type: String, default: '' },
       },
+      newsletter: {
+        eyebrow: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+        backgroundImage: { type: String, default: '' },
+        visible: { type: Boolean, default: true },
+      },
+      faq: {
+        title: { type: String, default: '' },
+        description: { type: String, default: '' },
+        buttonLabel: { type: String, default: '' },
+        items: {
+          type: [
+            {
+              question: { type: String, default: '' },
+              answer: { type: String, default: '' },
+            },
+          ],
+          default: [],
+        },
+        visible: { type: Boolean, default: true },
+      },
     },
     default: {},
   })
   landingSections: Record<
     string,
-    { eyebrow: string; title: string; description: string; buttonLabel: string }
+    {
+      eyebrow: string;
+      title: string;
+      description: string;
+      buttonLabel: string;
+      backgroundImage?: string;
+      visible?: boolean;
+      items?: Array<{ question: string; answer: string }>;
+    }
   >;
 
   /**

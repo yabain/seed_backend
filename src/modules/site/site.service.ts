@@ -127,6 +127,21 @@ const DEFAULT_CONFIG = {
         'Consultez les campagnes de recrutement ouvertes et proposez votre candidature.',
       buttonLabel: 'Poser une candidature',
     },
+    newsletter: {
+      eyebrow: 'Newsletter',
+      title: 'Restez informés de nos actions',
+      description: 'Inscrivez-vous pour recevoir nos actualités et nos appels à action.',
+      buttonLabel: 'Nous contacter',
+      backgroundImage: '',
+      visible: true,
+    },
+    faq: {
+      title: 'Questions fréquentes',
+      description: 'Tout ce qu’il faut savoir avant de nous contacter.',
+      buttonLabel: '',
+      items: [],
+      visible: true,
+    },
   },
   hoverMenu: {
     enabled: false,
@@ -568,7 +583,11 @@ export class SiteService {
       Object.values(dto.landingSections).some(
         (section) =>
           section &&
-          Object.values(section).some((value) => typeof value === 'string'),
+          Object.values(section).some(
+            (value) =>
+              typeof value === 'string' ||
+              (Array.isArray(value) && value.length > 0),
+          ),
       )
     ) {
       return true;

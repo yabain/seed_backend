@@ -111,6 +111,30 @@ export class LandingSectionTextDto {
   @IsOptional() @IsString() @MaxLength(200) title?: string;
   @IsOptional() @IsString() @MaxLength(500) description?: string;
   @IsOptional() @IsString() @MaxLength(100) buttonLabel?: string;
+  /** Image d'arrière-plan (utilisée par la section newsletter). */
+  @IsOptional() @IsString() @MaxLength(2000) backgroundImage?: string;
+  /** Visibilité de la section (utilisée par la section newsletter). */
+  @IsOptional() @IsBoolean() visible?: boolean;
+}
+
+export class FaqItemDto {
+  @IsOptional() @IsString() @MaxLength(300) question?: string;
+  @IsOptional() @IsString() @MaxLength(2000) answer?: string;
+}
+
+export class FaqSectionDto {
+  @IsOptional() @IsString() @MaxLength(200) title?: string;
+  @IsOptional() @IsString() @MaxLength(500) description?: string;
+  @IsOptional() @IsString() @MaxLength(100) buttonLabel?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => FaqItemDto)
+  items?: FaqItemDto[];
+
+  @IsOptional() @IsBoolean() visible?: boolean;
 }
 
 export class LandingSectionsDto {
@@ -150,6 +174,10 @@ export class LandingSectionsDto {
   @ValidateNested()
   @Type(() => LandingSectionTextDto)
   newsletter?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FaqSectionDto)
+  faq?: FaqSectionDto;
 }
 
 export class HoverMenuItemDto {
