@@ -70,6 +70,16 @@ const DEFAULT_CONFIG = {
     donations: true,
     recruitments: true,
   },
+  navVisibility: {
+    news: true,
+    resources: true,
+    programs: true,
+    partners: true,
+    events: true,
+    team: true,
+    donations: true,
+    recruitments: true,
+  },
   landingSections: {
     events: {
       eyebrow: 'Événements',
@@ -261,6 +271,13 @@ export class SiteService {
         ...DEFAULT_CONFIG.segments,
         ...(config.segments ?? {}),
         ...dto.segments,
+      });
+    }
+    if (dto.navVisibility) {
+      config.set('navVisibility', {
+        ...DEFAULT_CONFIG.navVisibility,
+        ...(config.navVisibility ?? {}),
+        ...dto.navVisibility,
       });
     }
     if (dto.landingSections) {
@@ -537,6 +554,12 @@ export class SiteService {
     if (
       dto.segments &&
       Object.values(dto.segments).some((value) => typeof value === 'boolean')
+    ) {
+      return true;
+    }
+    if (
+      dto.navVisibility &&
+      Object.values(dto.navVisibility).some((value) => typeof value === 'boolean')
     ) {
       return true;
     }
