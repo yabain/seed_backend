@@ -266,39 +266,62 @@ export class SiteService {
 
     const config = await this.getOrCreate();
 
-    // Valeurs actuelles lues AVANT `compact(dto)` : `config.set` remplace
-    // l'objet imbriqué et réinitialise à leur valeur par défaut les clés
-    // absentes. Sans cela, une mise à jour partielle du menu (ex. simple bascule
-    // de visibilité) écraserait le titre et les sous-menus déjà enregistrés.
+    // Valeurs actuelles lues AVANT toute écriture : chaque objet imbriqué fait
+    // ensuite l'objet d'une fusion explicite (défauts + valeurs stockées +
+    // patch). Sans cette capture préalable, l'écriture d'une section partielle
+    // (ex. FAQ) écraserait les autres sections (ex. newsletter) en les faisant
+    // retomber sur leurs valeurs par défaut.
+    const previousSocial = (config.get('social') ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const previousSegments = (config.get('segments') ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const previousNavVisibility = (config.get('navVisibility') ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const previousLandingSections = (config.get('landingSections') ??
+      {}) as Record<string, unknown>;
     const previousHoverMenu = (config.get('hoverMenu') ??
       {}) as Partial<HoverMenu>;
+    const previousOrizia = (config.get('orizia') as {
+      enabled?: boolean;
+      visible?: boolean;
+      logo?: string;
+      welcomeImage?: string;
+      openRouterApiKey?: string;
+      temperature?: number;
+      reasoningLevel?: 'low' | 'medium' | 'high';
+    }) ?? {};
 
-    config.set(this.compact(dto));
     if (dto.social) {
       config.set('social', {
         ...DEFAULT_CONFIG.social,
-        ...(config.social ?? {}),
+        ...previousSocial,
         ...dto.social,
       });
     }
     if (dto.segments) {
       config.set('segments', {
         ...DEFAULT_CONFIG.segments,
-        ...(config.segments ?? {}),
+        ...previousSegments,
         ...dto.segments,
       });
     }
     if (dto.navVisibility) {
       config.set('navVisibility', {
         ...DEFAULT_CONFIG.navVisibility,
-        ...(config.navVisibility ?? {}),
+        ...previousNavVisibility,
         ...dto.navVisibility,
       });
     }
     if (dto.landingSections) {
       config.set('landingSections', {
         ...DEFAULT_CONFIG.landingSections,
-        ...(config.landingSections ?? {}),
+        ...previousLandingSections,
         ...dto.landingSections,
       });
     }
@@ -321,17 +344,6 @@ export class SiteService {
       });
     }
     if (dto.orizia) {
-      const previousOrizia =
-        (config.get('orizia') as {
-          enabled?: boolean;
-          visible?: boolean;
-          logo?: string;
-          welcomeImage?: string;
-          openRouterApiKey?: string;
-          temperature?: number;
-          reasoningLevel?: 'low' | 'medium' | 'high';
-        }) ?? {};
-
       const nextTemperature =
         typeof dto.orizia.temperature === 'number' &&
         Number.isFinite(dto.orizia.temperature)
@@ -366,6 +378,10 @@ export class SiteService {
         reasoningLevel: normalizedReasoning,
       });
     }
+
+    // Champs scalaires appliqués en dernier : ils ne touchent à aucun objet
+    // imbriqué, donc rien n'est écrasé par accident.
+    config.set(this.scalarPatch(dto));
     await config.save();
     const plain = config.toObject() as SiteConfig & {
       orizia?: { openRouterApiKey?: string };
@@ -624,10 +640,18 @@ export class SiteService {
     return false;
   }
 
-  private compact(dto: UpdateSiteConfigDto): Record<string, unknown> {
+  private scalarPatch(dto: UpdateSiteConfigDto): Record<string, unknown> {
+    const nestedKeys = new Set([
+      'social',
+      'segments',
+      'navVisibility',
+      'landingSections',
+      'hoverMenu',
+      'orizia',
+    ]);
     const patch: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(dto)) {
-      if (value !== undefined) {
+      if (value !== undefined && !nestedKeys.has(key)) {
         patch[key] = value;
       }
     }
