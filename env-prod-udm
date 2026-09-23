@@ -1,0 +1,210 @@
+# ===================== UdM Backend - Fichier d'environnement
+=====================
+
+# --- Serveur ---
+NODE_ENV=development
+PORT=3000
+# NODE_ENV=production
+# PORT=3008
+API_PREFIX=api
+
+# Origines autorisées pour le CORS (séparées par des virgules). "" = tout autoriser.
+# CLIENT_ORIGIN=http://localhost:4200
+CLIENT_ORIGIN=https://udm.yaba-in.com,https://udm.cm,http://localhost:4200
+
+# --- Base de données MongoDB Atlas ---
+MONGODB_URI=mongodb+srv://dev_db_user:udmnoryply123@udmwebplateform.ciubbqm.mongodb.net/?appName=UdMWebPlateform
+MONGODB_DB=UdMWebPlateform
+
+# --- Sécurité / JWT ---
+JWT_SECRET=JHJH8JH9JDSDjks82028JSNJAUBSHEANZNDAJZDNAJZDAIUZRUYAZUIRYAZY1R7AIUZRABNQSNBCW
+JWT_EXPIRES_IN=7d
+
+# --- Compte administrateur initial (créé automatiquement au premier lancement) ---
+# Rôle : superadmin (gestion des comptes et des contenus)
+ADMIN_EMAIL=flambel55@gmail.com
+ADMIN_PASSWORD=admin1234
+
+# --- E-mail (Nodemailer / SMTP) ---
+# Laisser SMTP_HOST vide pour désactiver l'envoi d'e-mails
+# (les messages restent sauvegardés en base).
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=dev@yaba-in.com
+SMTP_PASSWORD=tkeyiusxaxechyez
+SMTP_FROM=dev@yaba-in.com
+
+# Destinataires de secours des notifications de contact (séparés par des virgules).
+# Utilisés uniquement si aucun compte actif du back-office n'a "notifyContact" activé.
+CONTACT_RECIPIENT_EMAIL=info@udm.aed-cm.org
+
+# --- Cryptographie ---
+# Clé utilisée pour chiffrer les identifiants SMTP en base de données.
+# CRYPT_KEY=changez-moi-par-une-cle-secrete-longue-et-aleatoire
+CRYPT_KEY=HSDu5S4eDFStDZ3n45E4wRZE4xRZ2d10Z1fDF9ZEZv4Z35E4mRZj45ER86oZEiRZGGrHPKMtNZAIUgAEZYzIRU
+
+# URL publique du backend (utilisée dans les e-mails et les uploads)
+PUBLIC_URL=http://localhost:3000
+# PUBLIC_URL=https://udm-backend.yaba-in.com
+
+# Répertoire persistant des fichiers uploadés (images, PDF, pièces jointes…)
+# En production (NODE_ENV=production) : chemin ABSOLU hors du dossier de
+# déploiement pour survivre aux redéploiements. Par défaut :
+UPLOAD_DIR=/home/yabain/public_html/uploads/udmWebsitePlateform
+
+# En développement : relatif au dossier du projet.
+UPLOAD_DIR_LOCAL=uploads
+
+# 2AFA : Google keys.
+GOOGLE_CLIENT_ID=569864138356-90lu7hrd2n564gm3v4e3unqkg4t2l9u5.apps.googleusercontent.com
+
+# --- Identité des e-mails d'authentification ---
+# Le logo doit être une URL publique absolue. Laissez un réseau vide pour masquer son icône.
+EMAIL_LOGO_URL=https://upload.wikimedia.org/wikipedia/fr/e/e8/Logo_Universit%C3%A9_des_Montagnes.jpg?utm_source=fr.wikipedia.org&utm_campaign=index&utm_content=original
+
+EMAIL_SOCIAL_FACEBOOK=https://www.facebook.com/aed.udm/
+EMAIL_SOCIAL_INSTAGRAM=https://www.instagram.com/udesmontagnes/
+EMAIL_SOCIAL_LINKEDIN=https://www.linkedin.com/company/universit-des-montagnes
+EMAIL_SOCIAL_TWITTER=https://x.com/des_officiel
+EMAIL_SOCIAL_YOUTUBE=
+
+# ============================================================
+#  ORIZIA — assistant IA public (front office, sans compte)
+#  Mêmes paramètres que Merlin (projet eat-app), adaptés à seed.
+# ============================================================
+
+# Interrupteur général : mettre "false" pour désactiver le chat sur tout le site.
+ORIZIA_ENABLED=true
+
+# ============================================================
+#  FOURNISSEUR D'IA : OpenRouter (https://openrouter.ai)
+# ============================================================
+# Clé d'API OpenRouter — commence par « sk-or-v1- ».
+# Laisser vide désactive les réponses : le bouton reste visible et l'API renvoie
+# une erreur explicite.
+#
+ORIZIA_API_KEY=
+
+# Point d'entrée compatible OpenAI. OpenRouter est accepté avec ou sans « /api/v1 » :
+# le code ajoute automatiquement « /api/v1 » si l'URL racine est fournie.
+ORIZIA_BASE_URL=https://openrouter.ai/api/v1
+
+# ---------------------------------------------------------------------------
+#  BASCULE ENTRE MODÈLES (5 maximum)
+# ---------------------------------------------------------------------------
+# Liste de modèles séparés par des virgules, du plus souhaitable au moins
+# souhaitable. Tous ont été vérifiés au catalogue OpenRouter : variante « :free »
+# (entrée ET sortie à 0), contexte ≥ 262 000 jetons, `temperature`, `tools`
+# (function calling) et `reasoning` pris en charge.
+ORIZIA_MODELS=nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free,deepseek/deepseek-v4-flash-0731:free,cohere/north-mini-code:free,thinkingmachines/inkling-small:free
+#
+# Stratégie de sélection :
+#   fallback    (défaut) → toujours le premier modèle ; les suivants ne servent
+#                          qu'en cas d'échec (saturé, quota atteint, indisponible)
+#   round-robin          → le point de départ tourne à chaque question, ce qui
+#                          répartit la charge (les quotas sont appliqués par
+#                          modèle chez la plupart des fournisseurs sous-jacents)
+ORIZIA_MODEL_STRATEGY=fallback
+#
+# ⚠️ PALIER GRATUIT OPENROUTER — les limites portent sur le NOMBRE DE REQUÊTES :
+# environ 20 requêtes/minute et 50 requêtes/jour tant que moins de 10 crédits ont
+# été achetés ; 1 000/jour au-delà. Seules les variantes « :free » sont plafonnées
+# (la variante payante du même modèle ne l'est pas). La bascule entre plusieurs
+# modèles augmente donc la disponibilité, mais le plafond journalier reste celui
+# du compte.
+# Vérifier le quota restant : GET https://openrouter.ai/api/v1/key
+#
+# Note : la variable `ORIZIA_MODEL` (modèle unique) reste acceptée si vous
+# préférez une seule entrée — elle est alors utilisée telle quelle.
+#
+# ⚠️ POLITIQUE DE DONNÉES : les modèles gratuits d'OpenRouter exigent en général
+# l'activation du partage des prompts (Settings → Privacy → « Enable training and
+# logging »). Sans cela, l'API répond « No endpoints found matching your data
+# policy ». À valider avec la direction : les questions des visiteurs seraient
+# alors exploitables par le fournisseur du modèle.
+
+# Créativité : 0 = très factuel, 1 = très libre. Merlin utilise 0.7.
+ORIZIA_TEMPERATURE=0.7
+
+# Effort de raisonnement (low | medium | high). « low » réduit la latence et le
+# nombre de jetons de réflexion. Le modèle Nex-N2.5-Pro le prend en charge ; s'il
+# est refusé par un autre modèle, la requête est rejouée automatiquement sans lui.
+ORIZIA_REASONING_EFFORT=low
+
+# Bornage facultatif de la longueur de réponse, en jetons. Laisser vide pour la
+# valeur par défaut du fournisseur (une valeur trop faible tronquerait les appels
+# d'outils).
+ORIZIA_MAX_TOKENS=
+
+# Répertoire des documents de contexte (identité, règles, données publiques UdM).
+ORIZIA_CONTEXT_DIR=./context_udm
+# Budget maximal du contexte documentaire (caractères).
+ORIZIA_CONTEXT_MAX_CHARS=120000
+ORIZIA_CONTEXT_MAX_CHARS_PER_FILE=40000
+
+# Mémoire : messages précédents envoyés au modèle, et historique conservé en base.
+ORIZIA_CONTEXT_MESSAGES=10
+ORIZIA_MAX_HISTORY=50
+
+# Durée de vie du cache du « contexte dynamique » (millisecondes). Le contexte
+# dynamique (actualités, événements, programmes…) est reconstruit par 11 requêtes
+# MongoDB ; le cache évite de les rejouer à chaque question. Défaut : 60000 (1 min).
+ORIZIA_CONTEXT_CACHE_TTL_MS=60000
+
+# « Aujourd'hui » et le cron de purge utilisent ce fuseau horaire.
+ORIZIA_CRON_TIMEZONE=Africa/Douala
+
+# Délai maximal d'une génération (millisecondes).
+ORIZIA_TIMEOUT_MS=90000
+
+# --- Recherche web (outil « recherche_web », moteur DuckDuckGo, gratuit) ---
+# Permet à Orizia de compléter une réponse par une recherche Internet lorsque son
+# contexte ne suffit pas. Le prompt institutionnel encadre strictement cet usage
+# (questions académiques et informations publiques uniquement).
+ORIZIA_WEB_SEARCH_ENABLED=true
+# Nombre maximal de tours de recherche enchaînables pour une même réponse.
+ORIZIA_WEB_MAX_ROUNDS=3
+# Nombre de résultats renvoyés au modèle par recherche.
+ORIZIA_WEB_MAX_RESULTS=5
+# Garde-fou global : recherches maximales par minute (toutes conversations).
+ORIZIA_WEB_MAX_PER_MINUTE=12
+
+# --- En-têtes d'attribution OpenRouter (facultatifs mais recommandés) ---
+# Laisser vide pour utiliser automatiquement l'URL du site et le nom d'Orizia.
+ORIZIA_HTTP_REFERER=
+ORIZIA_APP_TITLE=Orizia - Université des Montagnes
+
+# URL publique du site, utilisée pour construire les liens proposés par Orizia.
+# Laissez vide pour retomber sur SITE_URL ou CLIENT_ORIGIN.
+ORIZIA_SITE_URL=
+
+--------------- Frontend ---------------
+   production: true,
+   apiUrl: 'https://udm-backend.yaba-in.com/api',
+   siteUrl: 'https://udm.yaba-in.com',
+   googleClientId: '569864138356-90lu7hrd2n564gm3v4e3unqkg4t2l9u5.apps.googleusercontent.com',
+   loaderIcon: 'assets/icon/icon.webp',
+
+   /**
+    * ORIZIA — assistant IA public (« l'intelligence des sommets »).
+    *
+    * `contextRoute` : emplacement du répertoire de contexte fourni au modèle
+    * (identité, périmètre et règles anti-hallucination + documents publics de
+    * l'organisation). Côté backend, ce répertoire est paramétré par `ORIZIA_CONTEXT_DIR`
+    * (valeur par défaut : `./context_udm`). La route est rappelée ici pour que la
+    * configuration du contexte soit visible depuis le front.
+    *
+    * `suggestions` : questions proposées au-dessus de la barre de saisie à
+    * l'ouverture du chat. Modifiables sans toucher au code.
+    */
+   orizia: {
+       enabled: true,
+       contextRoute: '/context_udm',
+       suggestions: [
+           'Quelle est la signification de ton nom "ORIZIA" ?',
+           "Quelles formations sont proposées à l'UdM?",
+           "Que pense-tu d'une formation en génie logiciel ?",
+       ],
+   },
+
