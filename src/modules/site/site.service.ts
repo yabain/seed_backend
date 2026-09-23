@@ -319,11 +319,34 @@ export class SiteService {
       });
     }
     if (dto.landingSections) {
-      config.set('landingSections', {
+      // Fusion profonde, section par section : on préserve non seulement les
+      // sections sœurs (ex. newsletter quand on n'édite que la FAQ), mais aussi
+      // les champs absents du patch au sein d'une section (ex. backgroundImage
+      // de la newsletter lorsque l'éditeur d'en-tête n'envoie que le titre).
+      const mergedSections: Record<string, unknown> = {
         ...DEFAULT_CONFIG.landingSections,
         ...previousLandingSections,
-        ...dto.landingSections,
-      });
+      };
+      const defaultSections = DEFAULT_CONFIG.landingSections as Record<
+        string,
+        unknown
+      >;
+      for (const [sectionKey, sectionPatch] of Object.entries(
+        dto.landingSections,
+      )) {
+        if (sectionPatch === undefined || sectionPatch === null) {
+          continue;
+        }
+        const previousSection = (previousLandingSections[sectionKey] ??
+          {}) as Record<string, unknown>;
+        const defaultSection = defaultSections[sectionKey] ?? {};
+        mergedSections[sectionKey] = {
+          ...(defaultSection as Record<string, unknown>),
+          ...previousSection,
+          ...sectionPatch,
+        };
+      }
+      config.set('landingSections', mergedSections);
     }
     if (dto.hoverMenu) {
       // Le menu est remplacé en bloc (et non fusionné entrée par entrée) : la
