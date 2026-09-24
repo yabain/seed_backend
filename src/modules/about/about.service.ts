@@ -38,6 +38,36 @@ export class AboutService {
     if (dto.visual !== undefined) {
       about.visual = dto.visual;
     }
+    if (dto.sectionEyebrow !== undefined) {
+      about.sectionEyebrow = dto.sectionEyebrow;
+    }
+    if (dto.titleLine1 !== undefined) {
+      about.titleLine1 = dto.titleLine1;
+    }
+    if (dto.titleLine2 !== undefined) {
+      about.titleLine2 = dto.titleLine2;
+    }
+    if (dto.sectionDescription !== undefined) {
+      about.sectionDescription = dto.sectionDescription;
+    }
+    if (dto.floatingCard1Icon !== undefined) {
+      about.floatingCard1Icon = dto.floatingCard1Icon;
+    }
+    if (dto.floatingCard1Label !== undefined) {
+      about.floatingCard1Label = dto.floatingCard1Label;
+    }
+    if (dto.floatingCard1Value !== undefined) {
+      about.floatingCard1Value = dto.floatingCard1Value;
+    }
+    if (dto.floatingCard2Icon !== undefined) {
+      about.floatingCard2Icon = dto.floatingCard2Icon;
+    }
+    if (dto.floatingCard2Label !== undefined) {
+      about.floatingCard2Label = dto.floatingCard2Label;
+    }
+    if (dto.floatingCard2Value !== undefined) {
+      about.floatingCard2Value = dto.floatingCard2Value;
+    }
     await about.save();
     return about.toObject();
   }
