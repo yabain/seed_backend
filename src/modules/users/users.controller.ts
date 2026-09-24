@@ -64,7 +64,11 @@ export class UsersController {
     @Body() dto: CreateUserDto,
     @CurrentUser() currentUser: AuthenticatedUser,
   ) {
-    return this.usersService.create(dto, { id: currentUser.id });
+    return this.usersService.create(dto, {
+      id: currentUser.id,
+      email: currentUser.email,
+      role: currentUser.role,
+    });
   }
 
   @Patch(':id')
