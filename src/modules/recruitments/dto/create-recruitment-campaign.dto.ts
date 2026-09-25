@@ -60,7 +60,7 @@ export class RecruitmentFormFieldDto {
 
   @IsEnum(RECRUITMENT_FIELD_TYPES, {
     message:
-      'Type de champ invalide (text, textarea, email, number, url, tel, date, file).',
+      'Type de champ invalide (text, textarea, email, number, url, tel, date, file, image).',
   })
   type: RecruitmentFieldType;
 
@@ -87,7 +87,7 @@ export class RecruitmentFormFieldDto {
   @IsOptional()
   @IsNumber()
   @Min(1)
-  @Max(50)
+  @Max(10)
   maxSizeMb?: number;
 }
 

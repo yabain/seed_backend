@@ -542,11 +542,17 @@ export class RecruitmentsService {
       const type = field.type as RecruitmentFieldType;
       const required = DEFAULT_FIELD_KEYS.has(key) ? true : !!field.required;
       const fileKind =
-        type === 'file' ? (field.fileKind ?? 'document') : 'any';
+        type === 'image'
+          ? 'image'
+          : type === 'file'
+            ? (field.fileKind ?? 'document')
+            : 'any';
       const maxSizeMb =
-        type === 'file'
-          ? Math.max(1, Math.min(50, Number(field.maxSizeMb ?? 10)))
-          : 10;
+        type === 'image'
+          ? 2
+          : type === 'file'
+            ? Math.max(1, Math.min(10, Number(field.maxSizeMb ?? 10)))
+            : 10;
 
       return {
         key,
@@ -669,7 +675,7 @@ export class RecruitmentsService {
         };
       }
 
-      if (definition.type === 'file') {
+      if (definition.type === 'file' || definition.type === 'image') {
         return this.validateFileField(definition, payload);
       }
 
