@@ -10,6 +10,7 @@ export const RECRUITMENT_FIELD_TYPES = [
   'number',
   'url',
   'tel',
+  'date',
   'file',
 ] as const;
 export type RecruitmentFieldType = (typeof RECRUITMENT_FIELD_TYPES)[number];

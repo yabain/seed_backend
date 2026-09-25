@@ -60,7 +60,7 @@ export class RecruitmentFormFieldDto {
 
   @IsEnum(RECRUITMENT_FIELD_TYPES, {
     message:
-      'Type de champ invalide (text, textarea, email, number, url, tel, file).',
+      'Type de champ invalide (text, textarea, email, number, url, tel, date, file).',
   })
   type: RecruitmentFieldType;
 

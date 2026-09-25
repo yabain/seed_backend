@@ -30,6 +30,7 @@ export class ResourcesService {
     category?: string;
     search?: string;
     isPublished?: boolean;
+    archived?: 'all' | 'archived' | 'active';
   }): Promise<{
     items: Resource[];
     total: number;
@@ -42,6 +43,11 @@ export class ResourcesService {
 
     if (query.isPublished !== undefined) {
       filter.isPublished = query.isPublished;
+    }
+    if (query.archived === 'archived') {
+      filter.isArchived = true;
+    } else if (query.archived !== 'all') {
+      filter.isArchived = false;
     }
     if (query.category) {
       filter.category = query.category;
@@ -108,6 +114,17 @@ export class ResourcesService {
       throw new NotFoundException('Ressource introuvable');
     }
     return resource;
+  }
+
+  async toggleArchive(id: string): Promise<Resource> {
+    const realId = this.ensureId(id);
+    const resource = await this.resourceModel.findById(realId).exec();
+    if (!resource) {
+      throw new NotFoundException('Ressource introuvable');
+    }
+    resource.isArchived = !resource.isArchived;
+    resource.archivedAt = resource.isArchived ? new Date() : null;
+    return resource.save();
   }
 
   async remove(id: string): Promise<{ deleted: boolean }> {

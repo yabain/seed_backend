@@ -81,6 +81,12 @@ export class Event {
 
   @Prop({ default: false })
   isVisibleOnLanding: boolean;
+
+  @Prop({ default: false })
+  isArchived: boolean;
+
+  @Prop({ type: Date, default: null })
+  archivedAt: Date | null;
 }
 
 export const EventSchema = SchemaFactory.createForClass(Event);

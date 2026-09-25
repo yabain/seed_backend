@@ -47,6 +47,7 @@ export class EventsController {
       limit?: number;
       search?: string;
       status?: string;
+      archived?: 'all' | 'archived' | 'active';
     },
   ) {
     return this.eventsService.findAll(query);
@@ -74,6 +75,12 @@ export class EventsController {
   @Roles('admin', 'superadmin')
   toggleVisibility(@Param('id') id: string) {
     return this.eventsService.toggleVisibility(id);
+  }
+
+  @Patch(':id/toggle-archive')
+  @Roles('admin', 'superadmin')
+  toggleArchive(@Param('id') id: string) {
+    return this.eventsService.toggleArchive(id);
   }
 
   @Delete(':id')

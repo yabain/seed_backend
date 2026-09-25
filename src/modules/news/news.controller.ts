@@ -55,6 +55,7 @@ export class NewsController {
       limit?: number;
       status?: string;
       search?: string;
+      archived?: 'all' | 'archived' | 'active';
     },
   ) {
     return this.newsService.findAll(query);
@@ -76,6 +77,12 @@ export class NewsController {
   @Roles('admin', 'superadmin')
   update(@Param('id') id: string, @Body() dto: UpdateNewsDto) {
     return this.newsService.update(id, dto);
+  }
+
+  @Patch(':id/toggle-archive')
+  @Roles('admin', 'superadmin')
+  toggleArchive(@Param('id') id: string) {
+    return this.newsService.toggleArchive(id);
   }
 
   @Delete(':id')

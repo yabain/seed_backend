@@ -34,6 +34,12 @@ export class Resource {
 
   @Prop({ default: true })
   isPublished: boolean;
+
+  @Prop({ default: false })
+  isArchived: boolean;
+
+  @Prop({ type: Date, default: null })
+  archivedAt: Date | null;
 }
 
 export const ResourceSchema = SchemaFactory.createForClass(Resource);

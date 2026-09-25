@@ -96,6 +96,7 @@ export class NewsService {
     limit?: number;
     status?: string;
     search?: string;
+    archived?: 'all' | 'archived' | 'active';
   }): Promise<{ items: News[]; total: number; page: number; limit: number }> {
     const page = Math.max(Number(query.page) || 1, 1);
     const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 100);
@@ -103,6 +104,11 @@ export class NewsService {
 
     if (query.status) {
       filter.status = query.status;
+    }
+    if (query.archived === 'archived') {
+      filter.isArchived = true;
+    } else if (query.archived !== 'all') {
+      filter.isArchived = false;
     }
     if (query.search) {
       filter.$or = [
@@ -140,7 +146,7 @@ export class NewsService {
 
   async findLatest(limit = 3): Promise<News[]> {
     return this.newsModel
-      .find({ status: 'published' })
+      .find({ status: 'published', isArchived: false })
       .sort({ publishedAt: -1 })
       .limit(limit)
       .lean()
@@ -149,7 +155,7 @@ export class NewsService {
 
   async findVisibleOnLanding(limit = 10): Promise<News[]> {
     return this.newsModel
-      .find({ status: 'published', isVisibleOnLanding: true })
+      .find({ status: 'published', isVisibleOnLanding: true, isArchived: false })
       .sort({ publishedAt: -1 })
       .limit(limit)
       .lean()
@@ -167,7 +173,7 @@ export class NewsService {
 
   async findOneBySlug(slug: string): Promise<News> {
     const news = await this.newsModel
-      .findOne({ slug, status: 'published' })
+      .findOne({ slug, status: 'published', isArchived: false })
       .lean()
       .exec();
     if (!news) {
@@ -197,6 +203,17 @@ export class NewsService {
       throw new NotFoundException('Actualité introuvable');
     }
     return news;
+  }
+
+  async toggleArchive(id: string): Promise<News> {
+    const realId = this.ensureId(id);
+    const news = await this.newsModel.findById(realId).exec();
+    if (!news) {
+      throw new NotFoundException('Actualité introuvable');
+    }
+    news.isArchived = !news.isArchived;
+    news.archivedAt = news.isArchived ? new Date() : null;
+    return news.save();
   }
 
   async remove(id: string): Promise<{ deleted: boolean }> {

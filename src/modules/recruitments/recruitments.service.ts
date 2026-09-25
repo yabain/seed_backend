@@ -745,6 +745,16 @@ export class RecruitmentsService {
           `Le champ « ${label} » doit être un numéro valide.`,
         );
       }
+      return;
+    }
+
+    if (type === 'date') {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(value) || Number.isNaN(new Date(value).getTime())) {
+        throw new BadRequestException(
+          `Le champ « ${label} » doit être une date valide.`,
+        );
+      }
     }
   }
 

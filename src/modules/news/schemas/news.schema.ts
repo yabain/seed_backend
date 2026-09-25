@@ -42,6 +42,12 @@ export class News {
 
   @Prop()
   publishedAt: Date;
+
+  @Prop({ default: false })
+  isArchived: boolean;
+
+  @Prop({ type: Date, default: null })
+  archivedAt: Date | null;
 }
 
 export const NewsSchema = SchemaFactory.createForClass(News);

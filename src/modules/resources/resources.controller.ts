@@ -78,6 +78,27 @@ export class ResourcesController {
     return this.resourcesService.findCategories();
   }
 
+  @Get('all')
+  @Roles('admin', 'superadmin')
+  findAll(
+    @Query()
+    query: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      isPublished?: string;
+      archived?: 'all' | 'archived' | 'active';
+    },
+  ) {
+    return this.resourcesService.findAll({
+      ...query,
+      isPublished:
+        query.isPublished !== undefined
+          ? query.isPublished === 'true'
+          : undefined,
+    });
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.resourcesService.findOne(id);
@@ -144,6 +165,12 @@ export class ResourcesController {
   @Roles('admin', 'superadmin')
   update(@Param('id') id: string, @Body() dto: UpdateResourceDto) {
     return this.resourcesService.update(id, dto);
+  }
+
+  @Patch(':id/toggle-archive')
+  @Roles('admin', 'superadmin')
+  toggleArchive(@Param('id') id: string) {
+    return this.resourcesService.toggleArchive(id);
   }
 
   @Delete(':id')

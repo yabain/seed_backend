@@ -79,6 +79,7 @@ export class EventsService {
     limit?: number;
     search?: string;
     status?: string;
+    archived?: 'all' | 'archived' | 'active';
   }): Promise<{ items: Event[]; total: number; page: number; limit: number }> {
     const page = Math.max(Number(query.page) || 1, 1);
     const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 100);
@@ -86,6 +87,11 @@ export class EventsService {
 
     if (query.status) {
       filter.status = query.status;
+    }
+    if (query.archived === 'archived') {
+      filter.isArchived = true;
+    } else if (query.archived !== 'all') {
+      filter.isArchived = false;
     }
     if (query.search) {
       filter.$or = [
@@ -118,7 +124,7 @@ export class EventsService {
 
   async findVisibleOnLanding(): Promise<Event[]> {
     return this.eventModel
-      .find({ isVisibleOnLanding: true })
+      .find({ isVisibleOnLanding: true, isArchived: false })
       .sort({ startDate: -1 })
       .limit(10)
       .lean()
@@ -128,7 +134,11 @@ export class EventsService {
   async findLatest(limit = 3): Promise<Event[]> {
     const now = new Date();
     return this.eventModel
-      .find({ isVisibleOnLanding: true, endDate: { $gte: now } })
+      .find({
+        isVisibleOnLanding: true,
+        isArchived: false,
+        endDate: { $gte: now },
+      })
       .sort({ startDate: 1 })
       .limit(limit)
       .lean()
@@ -180,6 +190,17 @@ export class EventsService {
       throw new NotFoundException('Événement introuvable');
     }
     event.isVisibleOnLanding = !event.isVisibleOnLanding;
+    return event.save();
+  }
+
+  async toggleArchive(id: string): Promise<Event> {
+    const realId = this.ensureId(id);
+    const event = await this.eventModel.findById(realId).exec();
+    if (!event) {
+      throw new NotFoundException('Événement introuvable');
+    }
+    event.isArchived = !event.isArchived;
+    event.archivedAt = event.isArchived ? new Date() : null;
     return event.save();
   }
 
