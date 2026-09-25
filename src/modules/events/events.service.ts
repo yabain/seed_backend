@@ -91,7 +91,7 @@ export class EventsService {
     if (query.archived === 'archived') {
       filter.isArchived = true;
     } else if (query.archived !== 'all') {
-      filter.isArchived = false;
+      filter.isArchived = { $ne: true };
     }
     if (query.search) {
       filter.$or = [
@@ -124,7 +124,7 @@ export class EventsService {
 
   async findVisibleOnLanding(): Promise<Event[]> {
     return this.eventModel
-      .find({ isVisibleOnLanding: true, isArchived: false })
+      .find({ isVisibleOnLanding: true, isArchived: { $ne: true } })
       .sort({ startDate: -1 })
       .limit(10)
       .lean()
@@ -136,7 +136,7 @@ export class EventsService {
     return this.eventModel
       .find({
         isVisibleOnLanding: true,
-        isArchived: false,
+        isArchived: { $ne: true },
         endDate: { $gte: now },
       })
       .sort({ startDate: 1 })

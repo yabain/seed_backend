@@ -47,7 +47,7 @@ export class ResourcesService {
     if (query.archived === 'archived') {
       filter.isArchived = true;
     } else if (query.archived !== 'all') {
-      filter.isArchived = false;
+      filter.isArchived = { $ne: true };
     }
     if (query.category) {
       filter.category = query.category;

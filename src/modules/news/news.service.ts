@@ -108,7 +108,7 @@ export class NewsService {
     if (query.archived === 'archived') {
       filter.isArchived = true;
     } else if (query.archived !== 'all') {
-      filter.isArchived = false;
+      filter.isArchived = { $ne: true };
     }
     if (query.search) {
       filter.$or = [
@@ -146,7 +146,7 @@ export class NewsService {
 
   async findLatest(limit = 3): Promise<News[]> {
     return this.newsModel
-      .find({ status: 'published', isArchived: false })
+      .find({ status: 'published', isArchived: { $ne: true } })
       .sort({ publishedAt: -1 })
       .limit(limit)
       .lean()
@@ -155,7 +155,7 @@ export class NewsService {
 
   async findVisibleOnLanding(limit = 10): Promise<News[]> {
     return this.newsModel
-      .find({ status: 'published', isVisibleOnLanding: true, isArchived: false })
+      .find({ status: 'published', isVisibleOnLanding: true, isArchived: { $ne: true } })
       .sort({ publishedAt: -1 })
       .limit(limit)
       .lean()
@@ -173,7 +173,7 @@ export class NewsService {
 
   async findOneBySlug(slug: string): Promise<News> {
     const news = await this.newsModel
-      .findOne({ slug, status: 'published', isArchived: false })
+      .findOne({ slug, status: 'published', isArchived: { $ne: true } })
       .lean()
       .exec();
     if (!news) {
