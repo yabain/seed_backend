@@ -108,7 +108,7 @@ const DEFAULT_CONFIG = {
       buttonLabel: '',
     },
     team: {
-      eyebrow: 'Notre équipe',
+      eyebrow: 'Management',
       title: 'Les personnes qui nous font avancer',
       description: 'Découvrez les membres engagés au service de nos missions.',
       buttonLabel: '',
