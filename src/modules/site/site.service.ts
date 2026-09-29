@@ -10,6 +10,12 @@ import {
 import {
   HOVER_MENU_MAX_ITEMS,
   UpdateSiteConfigDto,
+  SocialDto,
+  SegmentsDto,
+  NavVisibilityDto,
+  HoverMenuDto,
+  LandingSectionTextDto,
+  FaqSectionDto,
 } from './dto/update-site-config.dto';
 import { resolvePublicMediaUrl } from '../../utils/public-media-url.util';
 import { CryptService } from '../crypt/crypt.service';
@@ -415,6 +421,48 @@ export class SiteService {
       plain.orizia.welcomeImage = this.resolveMediaUrl(plain.orizia.welcomeImage);
     }
     return plain;
+  }
+
+  /**
+   * `PUT /site-config/identity` — met à jour uniquement les champs d'identité
+   * du site (nom, coordonnées, couleurs, logos, métadonnées, etc.).
+   */
+  async updateIdentity(dto: UpdateSiteConfigDto): Promise<SiteConfig> {
+    return this.update(dto);
+  }
+
+  /** `PUT /site-config/social` — réseaux sociaux uniquement. */
+  async updateSocial(dto: SocialDto): Promise<SiteConfig> {
+    return this.update({ social: dto });
+  }
+
+  /** `PUT /site-config/segments` — visibilité des segments uniquement. */
+  async updateSegments(dto: SegmentsDto): Promise<SiteConfig> {
+    return this.update({ segments: dto });
+  }
+
+  /** `PUT /site-config/nav-visibility` — visibilité navbar uniquement. */
+  async updateNavVisibility(dto: NavVisibilityDto): Promise<SiteConfig> {
+    return this.update({ navVisibility: dto });
+  }
+
+  /** `PUT /site-config/hover-menu` — menu déroulant uniquement. */
+  async updateHoverMenu(dto: HoverMenuDto): Promise<SiteConfig> {
+    return this.update({ hoverMenu: dto });
+  }
+
+  /**
+   * `PUT /site-config/:section` — met à jour une seule section de la landing
+   * (`partners`, `news`, `faq`, …). La fusion profonde de `update()` préserve
+   * les sections sœurs et les champs non transmis.
+   */
+  async updateLandingSection(
+    section: string,
+    dto: LandingSectionTextDto | FaqSectionDto,
+  ): Promise<SiteConfig> {
+    return this.update({
+      landingSections: { [section]: dto },
+    } as unknown as UpdateSiteConfigDto);
   }
 
   async getOriziaSettingsForAdmin(): Promise<{
