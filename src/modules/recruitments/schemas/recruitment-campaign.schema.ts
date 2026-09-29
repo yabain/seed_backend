@@ -31,7 +31,7 @@ export class RecruitmentFormField {
   @Prop({ required: true, trim: true })
   label: string;
 
-  @Prop({ enum: RECRUITMENT_FIELD_TYPES, default: 'text' })
+  @Prop({ enum: RECRUITMENT_FIELD_TYPES, default: 'text', type: String })
   type: RecruitmentFieldType;
 
   @Prop({ default: false })

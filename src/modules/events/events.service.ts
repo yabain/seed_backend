@@ -119,7 +119,7 @@ export class EventsService {
     limit?: number;
     search?: string;
   }): Promise<{ items: Event[]; total: number; page: number; limit: number }> {
-    return this.findAll({ ...query });
+    return this.findAll({ ...query, archived: 'active' });
   }
 
   async findVisibleOnLanding(): Promise<Event[]> {
