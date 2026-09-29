@@ -32,6 +32,7 @@ import { FeaturesSectionModule } from './modules/features-section/features-secti
 import { CountriesSectionModule } from './modules/countries-section/countries-section.module';
 import { VideoHighlightSectionModule } from './modules/video-highlight-section/video-highlight-section.module';
 import { VirtualTourSectionModule } from './modules/virtual-tour-section/virtual-tour-section.module';
+import { SectionsModule } from './modules/sections/sections.module';
 import { TeamModule } from './modules/team/team.module';
 import { DonationsModule } from './modules/donations/donations.module';
 import { ImpactsModule } from './modules/impacts/impacts.module';
@@ -75,6 +76,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     CountriesSectionModule,
     VideoHighlightSectionModule,
     VirtualTourSectionModule,
+    SectionsModule,
     TeamModule,
     DonationsModule,
     ImpactsModule,
