@@ -38,6 +38,8 @@ import { DonationsModule } from './modules/donations/donations.module';
 import { ImpactsModule } from './modules/impacts/impacts.module';
 import { OriziaModule } from './modules/orizia/orizia.module';
 import { RecruitmentsModule } from './modules/recruitments/recruitments.module';
+import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -82,6 +84,8 @@ import { RolesGuard } from './common/guards/roles.guard';
     ImpactsModule,
     OriziaModule,
     RecruitmentsModule,
+    PlatformSettingsModule,
+    WhatsappModule,
     SeedModule,
   ],
   controllers: [AppController],

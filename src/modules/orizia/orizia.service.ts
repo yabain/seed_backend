@@ -611,7 +611,7 @@ export class OriziaService implements OnModuleInit, OnApplicationBootstrap {
   }
 
   /**
-   * Enregistre la conversation. L'historique est plafonné (comme Merlin).
+   * Enregistre la conversation. L'historique est plafonné.
    * Aucune date d'expiration n'est posée : la purge des visiteurs est assurée
    * uniquement par le cron de minuit, afin qu'un visiteur conserve son fil toute
    * la journée.

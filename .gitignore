@@ -17,6 +17,9 @@ npm-debug.log*
 # Uploads
 uploads/
 
+# WhatsApp Web session (runtime, local puppeteer mode)
+whatsapp-session/
+
 # OS
 .DS_Store
 Thumbs.db
