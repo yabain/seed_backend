@@ -3,20 +3,32 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Request } from 'express';
 import { NewsService } from './news.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
 import { Public } from '../../common/decorators/public.decorator';
+import {
+  buildFrontendUrl,
+  normalizeMediaUrl,
+  renderOgpPage,
+} from '../../common/utils/ogp.util';
 
 @Controller('news')
 export class NewsController {
-  constructor(private readonly newsService: NewsService) {}
+  constructor(
+    private readonly newsService: NewsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   // ---------- Espace public ----------
   @Public()
@@ -43,6 +55,25 @@ export class NewsController {
   @Get('slug/:slug')
   findOneBySlug(@Param('slug') slug: string) {
     return this.newsService.findOneBySlug(slug);
+  }
+
+  /** Page Open Graph servie aux robots sociaux pour `/news/:slug`. */
+  @Public()
+  @Get('ogp/:slug')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  async renderOgp(@Param('slug') slug: string, @Req() req: Request) {
+    const item = await this.newsService.findOneBySlug(slug);
+    const id = item.slug || String((item as unknown as Record<string, unknown>)._id);
+    const url = `${buildFrontendUrl(this.configService)}/news/${encodeURIComponent(id)}`;
+    const mediaOrigin =
+      this.configService.get<string>('PUBLIC_URL') ||
+      `${req.protocol}://${req.get('host')}`;
+    return renderOgpPage({
+      title: item.title,
+      description: item.excerpt || item.content,
+      image: normalizeMediaUrl(item.image, mediaOrigin),
+      url,
+    });
   }
 
   // ---------- Back-office (admin) ----------

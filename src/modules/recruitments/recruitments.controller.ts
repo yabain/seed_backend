@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -21,6 +22,11 @@ import { join } from 'node:path';
 import { RecruitmentsService } from './recruitments.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import {
+  buildFrontendUrl,
+  normalizeMediaUrl,
+  renderOgpPage,
+} from '../../common/utils/ogp.util';
 import { CreateRecruitmentCampaignDto } from './dto/create-recruitment-campaign.dto';
 import { UpdateRecruitmentCampaignDto } from './dto/update-recruitment-campaign.dto';
 import { CreateRecruitmentApplicationDto } from './dto/create-recruitment-application.dto';
@@ -140,6 +146,25 @@ export class RecruitmentsController {
   @Get('landing')
   findVisibleOnLanding(@Query('limit') limit?: number) {
     return this.recruitmentsService.findVisibleOnLanding(limit ? Number(limit) : 10);
+  }
+
+  /** Page Open Graph servie aux robots sociaux pour `/recruitments/:id`. */
+  @Public()
+  @Get('ogp/:id')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  async renderOgp(@Param('id') id: string, @Req() req: Request) {
+    const item = await this.recruitmentsService.findPublicCampaignById(id);
+    const ref = String((item as unknown as Record<string, unknown>)._id);
+    const url = `${buildFrontendUrl(this.configService)}/recruitments/${encodeURIComponent(ref)}`;
+    const mediaOrigin =
+      this.configService.get<string>('PUBLIC_URL') ||
+      `${req.protocol}://${req.get('host')}`;
+    return renderOgpPage({
+      title: item.title,
+      description: item.description || item.contentHtml,
+      image: normalizeMediaUrl(item.image, mediaOrigin),
+      url,
+    });
   }
 
   // ---------- Back-office ----------
