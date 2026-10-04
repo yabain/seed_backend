@@ -80,6 +80,7 @@ export class SeedService implements OnModuleInit {
       name,
       role: 'superadmin',
       notifyContact: true,
+      notifyWhatsapp: true,
     });
     this.logger.warn(
       `✅ Compte administrateur créé -> ${email} / ${password} (superadmin)`,

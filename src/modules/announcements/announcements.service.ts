@@ -8,8 +8,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
   Announcement,
+  AnnouncementChannel,
   AnnouncementDelivery,
   AnnouncementDocument,
+  CHANNEL_LABELS,
   GROUP_LABELS,
   STATUS_LABELS,
 } from './schemas/announcement.schema';
@@ -22,6 +24,7 @@ import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 import { UpdateAnnouncementSettingsDto } from './dto/update-settings.dto';
 import { MailService } from '../mail/mail.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { Admin } from '../auth/schemas/admin.schema';
 import { Prospect } from '../prospects/prospect.schema';
 import { EmailLog, EmailLogDocument } from '../email/email.schema';
@@ -57,6 +60,7 @@ export class AnnouncementsService {
     @InjectModel(EmailLog.name)
     private readonly emailLogModel: Model<EmailLogDocument>,
     private readonly mailService: MailService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   /* ------------------------------ CRUD ------------------------------ */
@@ -125,8 +129,10 @@ export class AnnouncementsService {
     const doc = await this.announcementModel.create({
       subject: dto.subject.trim(),
       bodyHtml: dto.bodyHtml,
+      channel: dto.channel ?? 'email',
       recipientGroup: dto.recipientGroup,
       customRecipients: dto.customRecipients ?? [],
+      customPhones: dto.customPhones ?? [],
       attachments: dto.attachments ?? [],
       includeHeader: dto.includeHeader ?? true,
       includeFooter: dto.includeFooter ?? true,
@@ -147,10 +153,14 @@ export class AnnouncementsService {
 
     if (dto.subject !== undefined) existing.subject = dto.subject.trim();
     if (dto.bodyHtml !== undefined) existing.bodyHtml = dto.bodyHtml;
+    if (dto.channel !== undefined)
+      existing.channel = dto.channel as AnnouncementChannel;
     if (dto.recipientGroup !== undefined)
       existing.recipientGroup = dto.recipientGroup as never;
     if (dto.customRecipients !== undefined)
       existing.customRecipients = dto.customRecipients;
+    if (dto.customPhones !== undefined)
+      existing.customPhones = dto.customPhones;
     if (dto.attachments !== undefined) existing.attachments = dto.attachments;
     if (dto.includeHeader !== undefined)
       existing.includeHeader = dto.includeHeader;
@@ -186,26 +196,21 @@ export class AnnouncementsService {
     const doc = await this.getEditableOrDraft(id);
 
     const recipients = await this.buildRecipients(
+      doc.channel,
       doc.recipientGroup,
       doc.customRecipients,
+      doc.customPhones,
     );
 
     if (!recipients.length) {
       throw new BadRequestException(
-        'Aucun destinataire trouvé pour ce groupe.',
+        'Aucun destinataire trouvé pour ce groupe ou ces numéros.',
       );
     }
 
     doc.status = 'sending';
     doc.error = '';
-    doc.deliveries = recipients.map((r) => ({
-      email: r.userEmail,
-      userId: r.userId,
-      userName: r.userName ?? '',
-      userPhone: r.userPhone ?? '',
-      status: 'pending',
-      attempts: 0,
-    }));
+    doc.deliveries = this.toDeliveries(doc.channel, recipients);
     await doc.save();
 
     // Traite la première vague immédiatement pour un retour rapide côté UI.
@@ -259,8 +264,10 @@ export class AnnouncementsService {
     const doc = await this.announcementModel.create({
       subject: `${source.subject} (copie)`,
       bodyHtml: source.bodyHtml,
+      channel: (source as any).channel ?? 'email',
       recipientGroup: source.recipientGroup,
       customRecipients: source.customRecipients ?? [],
+      customPhones: (source as any).customPhones ?? [],
       attachments: source.attachments ?? [],
       includeHeader: source.includeHeader ?? true,
       includeFooter: source.includeFooter ?? true,
@@ -360,8 +367,10 @@ export class AnnouncementsService {
         dueAnnouncement.status = 'sending';
 
         const recipients = await this.buildRecipients(
+          dueAnnouncement.channel,
           dueAnnouncement.recipientGroup,
           dueAnnouncement.customRecipients,
+          dueAnnouncement.customPhones,
         );
 
         if (!recipients.length) {
@@ -372,14 +381,10 @@ export class AnnouncementsService {
           return;
         }
 
-        dueAnnouncement.deliveries = recipients.map((r) => ({
-          email: r.userEmail,
-          userId: r.userId,
-          userName: r.userName ?? '',
-          userPhone: r.userPhone ?? '',
-          status: 'pending',
-          attempts: 0,
-        }));
+        dueAnnouncement.deliveries = this.toDeliveries(
+          dueAnnouncement.channel,
+          recipients,
+        );
       }
 
       await dueAnnouncement.save();
@@ -465,18 +470,47 @@ export class AnnouncementsService {
   ): Promise<void> {
     try {
       const settings = await this.getSettings();
+      const vars = {
+        userName: delivery.userName || '',
+        userEmail: delivery.email || '',
+        userPhone: delivery.userPhone || '',
+      };
+
+      // Canal WhatsApp : le contenu HTML est aplati en texte brut.
+      if (doc.channel === 'whatsapp') {
+        const text = this.composeWhatsapp(doc.subject, doc.bodyHtml, vars);
+        let ok = false;
+        const phone = (delivery.phone || delivery.userPhone || '').trim();
+        const attachment = (doc.attachments ?? [])[0];
+        if (attachment) {
+          const path = resolveUploadDir(
+            attachment.path.replace(/^\/uploads\//, '').replace(/^\//, ''),
+          );
+          ok = await this.sendWhatsappMedia(phone, text, path, attachment.fileName);
+        } else {
+          ok = await this.sendWhatsappText(phone, text);
+        }
+
+        delivery.attempts += 1;
+        if (ok) {
+          delivery.status = 'sent';
+          delivery.sentAt = new Date();
+          delivery.error = '';
+        } else {
+          delivery.status = 'failed';
+          delivery.error = 'WhatsApp non configuré ou indisponible.';
+        }
+        return;
+      }
+
       const html = this.composeEmail(doc.subject, doc.bodyHtml, settings, {
         includeHeader: doc.includeHeader ?? true,
         includeFooter: doc.includeFooter ?? true,
-        vars: {
-          userName: delivery.userName || '',
-          userEmail: delivery.email,
-          userPhone: delivery.userPhone || '',
-        },
+        vars,
       });
 
       const ok = await this.mailService.send({
-        to: delivery.email,
+        to: delivery.email || '',
         subject: doc.subject,
         html,
         attachments: (doc.attachments ?? []).map((a) => ({
@@ -505,6 +539,44 @@ export class AnnouncementsService {
     }
   }
 
+  private async sendWhatsappText(phone: string, message: string): Promise<boolean> {
+    if (!phone) {
+      return false;
+    }
+    try {
+      await this.whatsappService.sendText(phone, message);
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `WhatsApp annonce non envoyé à ${phone} : ${(error as Error)?.message || error}`,
+      );
+      return false;
+    }
+  }
+
+  private async sendWhatsappMedia(
+    phone: string,
+    message: string,
+    filePath: string,
+    fileName?: string,
+  ): Promise<boolean> {
+    if (!phone) {
+      return false;
+    }
+    try {
+      await this.whatsappService.sendMedia(phone, message, {
+        path: filePath,
+        filename: fileName ?? 'annonce',
+      });
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `WhatsApp annonce (media) non envoyé à ${phone} : ${(error as Error)?.message || error}`,
+      );
+      return false;
+    }
+  }
+
   /**
    * Enregistre un log groupé pour une annonce, avec le résultat « envoyés /
    * total » (ex. 4/10), afin d'apparaître de façon lisible dans la liste des
@@ -512,6 +584,7 @@ export class AnnouncementsService {
    */
   private async logAnnouncementGroup(doc: AnnouncementDocument): Promise<void> {
     try {
+      if (doc.channel === 'whatsapp') return;
       const total = doc.deliveries.length;
       const sent = doc.deliveries.filter((d) => d.status === 'sent').length;
       const groupLabel = GROUP_LABELS[doc.recipientGroup] ?? doc.recipientGroup;
@@ -542,25 +615,26 @@ export class AnnouncementsService {
   /* --------------------------- DESTINATAIRES ------------------------ */
 
   private async buildRecipients(
+    channel: AnnouncementChannel,
     group: string,
     customRecipients: string[],
+    customPhones: string[],
   ): Promise<ResolvedRecipient[]> {
     const map = new Map<string, ResolvedRecipient>();
+    const isWhatsapp = channel === 'whatsapp';
 
     if (group === 'all_prospects') {
       const prospects = await this.prospectModel
-        .find({ email: { $exists: true, $ne: '' } })
+        .find({})
         .select('name email phone')
         .lean()
         .exec();
       prospects.forEach((p) => {
         const email = (p.email || '').toLowerCase().trim();
-        if (email && !map.has(email)) {
-          map.set(email, {
-            userName: p.name || '',
-            userEmail: email,
-            userPhone: p.phone || '',
-          });
+        const phone = (p.phone || '').trim();
+        const k = isWhatsapp ? phone.replace(/\D/g, '') : email;
+        if (k && !map.has(k)) {
+          map.set(k, { userName: p.name || '', userEmail: email, userPhone: phone });
         }
       });
     } else {
@@ -577,25 +651,56 @@ export class AnnouncementsService {
         .exec();
       accounts.forEach((a) => {
         const email = (a.email || '').toLowerCase().trim();
-        if (email && !map.has(email)) {
-          map.set(email, {
+        const phone = (a.phone || '').trim();
+        const k = isWhatsapp ? phone.replace(/\D/g, '') : email;
+        if (k && !map.has(k)) {
+          map.set(k, {
             userId: String(a._id),
             userName: a.name || '',
             userEmail: email,
-            userPhone: a.phone || '',
+            userPhone: phone,
           });
         }
       });
     }
 
-    (customRecipients ?? []).forEach((raw) => {
-      const email = raw.toLowerCase().trim();
-      if (email.includes('@') && !map.has(email)) {
-        map.set(email, { userEmail: email, userName: '' });
-      }
-    });
+    if (isWhatsapp) {
+      (customPhones ?? []).forEach((raw) => {
+        const phone = raw.trim();
+        const k = phone.replace(/\D/g, '');
+        if (k && !map.has(k)) {
+          map.set(k, { userName: '', userEmail: '', userPhone: phone });
+        }
+      });
+    } else {
+      (customRecipients ?? []).forEach((raw) => {
+        const email = raw.toLowerCase().trim();
+        if (email.includes('@') && !map.has(email)) {
+          map.set(email, { userEmail: email, userName: '' });
+        }
+      });
+    }
 
     return Array.from(map.values());
+  }
+
+  /**
+   * Construit les livraisons (une par destinataire) : le champ `email` est le
+   * canal e-mail, le champ `phone` / `userPhone` est le canal WhatsApp.
+   */
+  private toDeliveries(
+    channel: AnnouncementChannel,
+    recipients: ResolvedRecipient[],
+  ): AnnouncementDelivery[] {
+    return recipients.map((r) => ({
+      email: r.userEmail,
+      phone: r.userPhone,
+      userId: r.userId,
+      userName: r.userName ?? '',
+      userPhone: r.userPhone ?? '',
+      status: 'pending',
+      attempts: 0,
+    }));
   }
 
   /* ------------------------------ OUTILS ---------------------------- */
@@ -650,6 +755,57 @@ export class AnnouncementsService {
     return doc;
   }
 
+  /**
+   * Compose le corps d'un message WhatsApp : remplace les variables puis
+   * aplatit le HTML en texte brut (avec le sujet en en-tête).
+   */
+  private composeWhatsapp(
+    subject: string,
+    bodyHtml: string,
+    vars: {
+      userName: string;
+      userEmail: string;
+      userPhone: string;
+    },
+  ): string {
+    const name = vars.userName || 'Cher membre';
+    const [firstName, ...rest] = name.split(' ');
+    const replacements: Record<string, string> = {
+      '{userName}': name,
+      '{userFirstName}': firstName || name,
+      '{userLastName}': rest.join(' ') || '',
+      '{userEmail}': vars.userEmail,
+      '{userPhone}': vars.userPhone,
+      '{subject}': subject,
+    };
+    let content = bodyHtml;
+    Object.entries(replacements).forEach(([key, value]) => {
+      content = content.split(key).join(value);
+    });
+    const text = this.stripHtml(content).trim();
+    return `${this.stripHtml(subject).trim()}\n\n${text}`;
+  }
+
+  private stripHtml(input: string): string {
+    let value = String(input ?? '');
+    value = value.replace(
+      /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi,
+      '$2\n$1',
+    );
+    value = value.replace(/<br\s*\/?>/gi, '\n');
+    value = value.replace(/<\/p>/gi, '\n');
+    value = value.replace(/<[^>]+>/g, '');
+    value = value
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/g, "'");
+    value = value.replace(/\n{3,}/g, '\n\n');
+    return value.trim();
+  }
+
   private sanitize(doc: Record<string, unknown>) {
     const deliveries = (doc.deliveries as AnnouncementDelivery[]) ?? [];
     const counts = {
@@ -662,6 +818,10 @@ export class AnnouncementsService {
     return {
       ...doc,
       id: String(doc._id),
+      channelLabel:
+        CHANNEL_LABELS[
+          (doc.channel as AnnouncementChannel | undefined) ?? 'email'
+        ] ?? '',
       groupLabel:
         GROUP_LABELS[doc.recipientGroup as keyof typeof GROUP_LABELS] ?? '',
       statusLabel:
@@ -669,6 +829,7 @@ export class AnnouncementsService {
       counts,
       deliveries: deliveries.map((d) => ({
         email: d.email,
+        phone: d.phone,
         userName: d.userName,
         userPhone: d.userPhone,
         status: d.status,

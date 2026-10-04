@@ -21,6 +21,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { MailService } from '../mail/mail.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { SiteService } from '../site/site.service';
 import { accountCredentialsTemplate } from '../mail/templates/account.templates';
 import {
@@ -84,6 +85,7 @@ export interface UsersListResult {
     role: UserRole;
     isActive: boolean;
     notifyContact: boolean;
+    notifyWhatsapp: boolean;
     lastLoginAt?: string;
     createdAt: string;
   }>;
@@ -111,6 +113,7 @@ export interface SanitizedAdmin {
   role: UserRole;
   isActive: boolean;
   notifyContact: boolean;
+  notifyWhatsapp: boolean;
   lastLoginAt?: string;
   createdAt: string;
 }
@@ -126,6 +129,7 @@ export class UsersService {
     private readonly mailService: MailService,
     private readonly siteService: SiteService,
     private readonly configService: ConfigService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   private sanitize(admin: Record<string, unknown>): SanitizedAdmin {
@@ -149,6 +153,7 @@ export class UsersService {
       role: (withoutPassword.role as UserRole) ?? 'user',
       isActive: (withoutPassword.isActive as boolean) ?? true,
       notifyContact: (withoutPassword.notifyContact as boolean) ?? true,
+      notifyWhatsapp: (withoutPassword.notifyWhatsapp as boolean) ?? true,
       lastLoginAt:
         (withoutPassword.lastLoginAt as string | undefined) ?? undefined,
       createdAt:
@@ -384,6 +389,7 @@ export class UsersService {
       role: dto.role ?? 'user',
       isActive: dto.isActive ?? true,
       notifyContact: dto.notifyContact ?? true,
+      notifyWhatsapp: dto.notifyWhatsapp ?? true,
     });
 
     const sanitized = this.sanitize(
@@ -411,8 +417,7 @@ export class UsersService {
 
     if (dto.notifyContact && dto.isActive !== false) {
       await this.sendCredentialsEmail(
-        sanitized.name,
-        sanitized.email,
+        created as AdminDocument,
         dto.password,
         dto.role ?? 'user',
         dto.siteUrl,
@@ -423,8 +428,7 @@ export class UsersService {
   }
 
   private async sendCredentialsEmail(
-    name: string,
-    email: string,
+    admin: AdminDocument,
     password: string,
     role: UserRole,
     siteUrl?: string,
@@ -436,11 +440,11 @@ export class UsersService {
         this.configService.get<string>('FRONT_URL') ||
         'http://localhost:4200';
       const sent = await this.mailService.send({
-        to: email,
+        to: admin.email,
         subject: `Votre compte ${siteConfig.orgName || 'Organisation'} — identifiants de connexion`,
         html: accountCredentialsTemplate({
-          name,
-          email,
+          name: admin.name,
+          email: admin.email,
           password,
           roleLabel: ROLE_LABELS[role] ?? role,
           loginUrl: `${frontUrl}/admin/login`,
@@ -458,14 +462,33 @@ export class UsersService {
       });
       if (!sent) {
         this.logger.warn(
-          `Identifiants non envoyés à ${email} : SMTP non configuré.`,
+          `Identifiants non envoyés à ${admin.email} : SMTP non configuré.`,
         );
       }
     } catch (error) {
       this.logger.error(
-        `Échec de l'envoi des identifiants à ${email} :`,
+        `Échec de l'envoi des identifiants à ${admin.email} :`,
         error,
       );
+    }
+
+    if (admin.phone && admin.notifyWhatsapp !== false) {
+      try {
+        const siteConfig = await this.siteService.getPublicConfig();
+        const orgName = siteConfig.orgName?.trim() || 'Organisation';
+        const frontUrl =
+          (siteUrl ?? '').trim().replace(/\/$/, '') ||
+          this.configService.get<string>('FRONT_URL') ||
+          'http://localhost:4200';
+        await this.whatsappService.sendText(
+          admin.phone,
+          `🆕 ${orgName} — Vos identifiants de connexion\n\nBonjour ${admin.name},\n\nVotre compte a été créé. Voici vos identifiants pour vous connecter :\n\nE-mail : ${admin.email}\nMot de passe : ${password}\n\nConnectez-vous ici : ${frontUrl}/admin/login\n\nPour des raisons de sécurité, pensez à changer ce mot de passe lors de votre première connexion.`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Identifiants WhatsApp non envoyés à ${admin.phone} : ${(error as Error)?.message || error}`,
+        );
+      }
     }
   }
 

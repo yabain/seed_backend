@@ -26,6 +26,7 @@ import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { MailService } from '../mail/mail.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { SiteService } from '../site/site.service';
@@ -73,6 +74,7 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly auditLogService: AuditLogService,
     private readonly siteService: SiteService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   private async emailBranding(orgName?: string) {
@@ -127,6 +129,48 @@ export class AuthService {
       expiresAt,
     });
     return code;
+  }
+
+  private whatsappEnabledFor(admin: {
+    notifyWhatsapp?: boolean | null;
+    phone?: string | null;
+  }): boolean {
+    return admin.notifyWhatsapp !== false && !!admin.phone;
+  }
+
+  private async sendWhatsapp(
+    phone: string | undefined,
+    message: string,
+  ): Promise<boolean> {
+    if (!phone) {
+      return false;
+    }
+    try {
+      await this.whatsappService.sendText(phone, message);
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `Notification WhatsApp non envoyée : ${(error as Error)?.message || error}`,
+      );
+      return false;
+    }
+  }
+
+  private async sendTwoFactorNotification(
+    admin: AdminDocument,
+    code: string,
+  ): Promise<boolean> {
+    const emailSent = await this.sendCodeEmail(admin.email, code);
+    let whatsappSent = false;
+    if (this.whatsappEnabledFor(admin)) {
+      const siteConfig = await this.siteService.getPublicConfig();
+      const orgName = siteConfig.orgName?.trim() || 'Organisation';
+      whatsappSent = await this.sendWhatsapp(
+        admin.phone,
+        `🔐 ${orgName} — Votre code de connexion\n\nVotre code est : ${code}\n\nIl expirera dans 10 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.`,
+      );
+    }
+    return emailSent || whatsappSent;
   }
 
   private async sendCodeEmail(to: string, code: string): Promise<boolean> {
@@ -194,7 +238,7 @@ export class AuthService {
       }
 
       const code = await this.createCode(adminId);
-      const sent = await this.sendCodeEmail(admin.email, code);
+      const sent = await this.sendTwoFactorNotification(admin, code);
       if (!sent) {
         await this.twoFactorCodeModel
           .updateOne({ adminId, code, used: false }, { used: true })
@@ -386,7 +430,7 @@ export class AuthService {
     }
 
     const code = await this.createCode(admin._id.toString());
-    await this.sendCodeEmail(admin.email, code);
+    await this.sendTwoFactorNotification(admin, code);
 
     await this.auditLogService.record({
       actorId: String(admin._id),
@@ -710,6 +754,7 @@ export class AuthService {
       avatar: admin.avatar || undefined,
       role: admin.role,
       isActive: admin.isActive,
+      notifyWhatsapp: admin.notifyWhatsapp ?? true,
       lastLoginAt: admin.lastLoginAt?.toISOString(),
       createdAt: createdAt.toISOString(),
     };
@@ -723,6 +768,7 @@ export class AuthService {
       name?: string;
       phone?: string;
       avatar?: string;
+      notifyWhatsapp?: boolean;
     },
   ) {
     const admin = await this.adminModel.findById(adminId).exec();
@@ -753,6 +799,9 @@ export class AuthService {
     if (data.avatar !== undefined) {
       admin.avatar = data.avatar?.trim() || undefined;
     }
+    if (data.notifyWhatsapp !== undefined) {
+      admin.notifyWhatsapp = data.notifyWhatsapp;
+    }
 
     await admin.save();
 
@@ -771,6 +820,7 @@ export class AuthService {
         avatar: admin.avatar || undefined,
         role: admin.role,
         isActive: admin.isActive,
+        notifyWhatsapp: admin.notifyWhatsapp ?? true,
         lastLoginAt: admin.lastLoginAt?.toISOString(),
         createdAt: createdAt.toISOString(),
       },
@@ -889,6 +939,14 @@ export class AuthService {
       );
     }
 
+    if (this.whatsappEnabledFor(admin)) {
+      const orgName = siteConfig.orgName?.trim() || 'Organisation';
+      await this.sendWhatsapp(
+        admin.phone,
+        `🔑 ${orgName} — Réinitialisation de votre mot de passe\n\nBonjour ${admin.name},\n\nPour choisir un nouveau mot de passe, ouvrez ce lien dans les 60 prochaines minutes :\n${resetUrl}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de passe restera inchangé.`,
+      );
+    }
+
     await this.auditLogService.record({
       actorId: String(admin._id),
       actorEmail: admin.email,
@@ -999,6 +1057,13 @@ export class AuthService {
       .catch((error) =>
         this.logger.warn('Send password-changed email failed:', error),
       );
+
+    if (this.whatsappEnabledFor(admin)) {
+      void this.sendWhatsapp(
+        admin.phone,
+        `🔒 ${orgName} — Votre mot de passe a été modifié\n\nBonjour ${admin.name},\n\nVotre mot de passe vient d'être modifié avec succès. Vous pouvez dès à présent vous connecter avec vos nouveaux identifiants.\n\nSi vous n'êtes pas à l'origine de cette modification, contactez immédiatement un administrateur.`,
+      ).catch(() => undefined);
+    }
 
     await this.auditLogService.record({
       actorId: String(admin._id),

@@ -5,12 +5,16 @@ import {
   IsDateString,
   IsEmail,
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { ANNOUNCEMENT_GROUPS } from '../schemas/announcement.schema';
+import {
+  ANNOUNCEMENT_CHANNELS,
+  ANNOUNCEMENT_GROUPS,
+} from '../schemas/announcement.schema';
 import { AttachmentDto } from './attachment.dto';
 
 export class CreateAnnouncementDto {
@@ -21,6 +25,10 @@ export class CreateAnnouncementDto {
   @IsString()
   bodyHtml!: string;
 
+  @IsIn(ANNOUNCEMENT_CHANNELS)
+  @IsOptional()
+  channel?: 'email' | 'whatsapp';
+
   @IsEnum(ANNOUNCEMENT_GROUPS)
   recipientGroup!: string;
 
@@ -28,6 +36,11 @@ export class CreateAnnouncementDto {
   @IsEmail({}, { each: true })
   @IsOptional()
   customRecipients?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  customPhones?: string[];
 
   @IsArray()
   @ValidateNested({ each: true })

@@ -29,6 +29,14 @@ export const ANNOUNCEMENT_STATUSES = [
 ] as const;
 export type AnnouncementStatus = (typeof ANNOUNCEMENT_STATUSES)[number];
 
+export const ANNOUNCEMENT_CHANNELS = ['email', 'whatsapp'] as const;
+export type AnnouncementChannel = (typeof ANNOUNCEMENT_CHANNELS)[number];
+
+export const CHANNEL_LABELS: Record<AnnouncementChannel, string> = {
+  email: 'E-mail',
+  whatsapp: 'WhatsApp',
+};
+
 export const STATUS_LABELS: Record<AnnouncementStatus, string> = {
   draft: 'Brouillon',
   scheduled: 'Programmé',
@@ -44,8 +52,11 @@ export interface AnnouncementAttachment {
 }
 
 export class AnnouncementDelivery {
-  @Prop({ required: true })
-  email!: string;
+  @Prop({ default: '' })
+  email?: string;
+
+  @Prop({ default: '' })
+  phone?: string;
 
   @Prop()
   userId?: string;
@@ -84,6 +95,12 @@ export class Announcement {
   bodyHtml!: string;
 
   @Prop({
+    enum: ANNOUNCEMENT_CHANNELS,
+    default: 'email',
+  })
+  channel!: AnnouncementChannel;
+
+  @Prop({
     enum: ANNOUNCEMENT_GROUPS,
     required: true,
   })
@@ -91,6 +108,9 @@ export class Announcement {
 
   @Prop({ type: [String], default: [] })
   customRecipients!: string[];
+
+  @Prop({ type: [String], default: [] })
+  customPhones!: string[];
 
   @Prop({
     enum: ANNOUNCEMENT_STATUSES,

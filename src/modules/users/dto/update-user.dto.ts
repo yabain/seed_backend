@@ -57,4 +57,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   notifyContact?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyWhatsapp?: boolean;
 }

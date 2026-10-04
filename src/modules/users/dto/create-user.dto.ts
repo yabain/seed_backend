@@ -59,6 +59,10 @@ export class CreateUserDto {
   notifyContact?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  notifyWhatsapp?: boolean;
+
+  @IsOptional()
   @IsString()
   @MaxLength(255)
   @Matches(/^https?:\/\/[^\s]+$/i, {

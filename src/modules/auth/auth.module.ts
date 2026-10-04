@@ -17,6 +17,7 @@ import {
 } from './schemas/password-reset-token.schema';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { SiteModule } from '../site/site.module';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { SiteModule } from '../site/site.module';
       }),
     }),
     AuditLogModule,
+    WhatsappModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

@@ -1,16 +1,13 @@
-# ===================== UdM Backend - Fichier d'environnement
-=====================
-
 # --- Serveur ---
-NODE_ENV=development
-PORT=3000
-# NODE_ENV=production
-# PORT=3008
+# NODE_ENV=development
+# PORT=3000
+NODE_ENV=production
+PORT=3008
 API_PREFIX=api
 
 # Origines autorisées pour le CORS (séparées par des virgules). "" = tout autoriser.
 # CLIENT_ORIGIN=http://localhost:4200
-CLIENT_ORIGIN=https://udm.yaba-in.com,https://udm.cm,http://localhost:4200
+CLIENT_ORIGIN=https://udm.yaba-in.com,https://udm.cm
 
 # --- Base de données MongoDB Atlas ---
 MONGODB_URI=mongodb+srv://dev_db_user:udmnoryply123@udmwebplateform.ciubbqm.mongodb.net/?appName=UdMWebPlateform
@@ -45,19 +42,16 @@ CONTACT_RECIPIENT_EMAIL=info@udm.aed-cm.org
 CRYPT_KEY=HSDu5S4eDFStDZ3n45E4wRZE4xRZ2d10Z1fDF9ZEZv4Z35E4mRZj45ER86oZEiRZGGrHPKMtNZAIUgAEZYzIRU
 
 # URL publique du backend (utilisée dans les e-mails et les uploads)
-PUBLIC_URL=http://localhost:3000
-# PUBLIC_URL=https://udm-backend.yaba-in.com
+# PUBLIC_URL=http://localhost:3000
+PUBLIC_URL=https://backend.udm.cm
 
 # Répertoire persistant des fichiers uploadés (images, PDF, pièces jointes…)
 # En production (NODE_ENV=production) : chemin ABSOLU hors du dossier de
 # déploiement pour survivre aux redéploiements. Par défaut :
-UPLOAD_DIR=/home/yabain/public_html/uploads/udmWebsitePlateform
+UPLOAD_DIR=/home/udm/public_html/uploads/udmWebsitePlateform
 
 # En développement : relatif au dossier du projet.
 UPLOAD_DIR_LOCAL=uploads
-
-# 2AFA : Google keys.
-GOOGLE_CLIENT_ID=569864138356-90lu7hrd2n564gm3v4e3unqkg4t2l9u5.apps.googleusercontent.com
 
 # --- Identité des e-mails d'authentification ---
 # Le logo doit être une URL publique absolue. Laissez un réseau vide pour masquer son icône.
@@ -68,6 +62,11 @@ EMAIL_SOCIAL_INSTAGRAM=https://www.instagram.com/udesmontagnes/
 EMAIL_SOCIAL_LINKEDIN=https://www.linkedin.com/company/universit-des-montagnes
 EMAIL_SOCIAL_TWITTER=https://x.com/des_officiel
 EMAIL_SOCIAL_YOUTUBE=
+
+
+# 2AFA : Google keys.
+GOOGLE_CLIENT_ID=569864138356-90lu7hrd2n564gm3v4e3unqkg4t2l9u5.apps.googleusercontent.com
+
 
 # --- Contenus de démonstration ---
 # « true » : le compte admin et la config du site restent créés au premier
@@ -184,33 +183,3 @@ ORIZIA_APP_TITLE=Orizia - Université des Montagnes
 # URL publique du site, utilisée pour construire les liens proposés par Orizia.
 # Laissez vide pour retomber sur SITE_URL ou CLIENT_ORIGIN.
 ORIZIA_SITE_URL=
-
---------------- Frontend ---------------
-   production: true,
-   apiUrl: 'https://udm-backend.yaba-in.com/api',
-   siteUrl: 'https://udm.yaba-in.com',
-   googleClientId: '569864138356-90lu7hrd2n564gm3v4e3unqkg4t2l9u5.apps.googleusercontent.com',
-   loaderIcon: 'assets/icon/icon.webp',
-
-   /**
-    * ORIZIA — assistant IA public (« l'intelligence des sommets »).
-    *
-    * `contextRoute` : emplacement du répertoire de contexte fourni au modèle
-    * (identité, périmètre et règles anti-hallucination + documents publics de
-    * l'organisation). Côté backend, ce répertoire est paramétré par `ORIZIA_CONTEXT_DIR`
-    * (valeur par défaut : `./context_udm`). La route est rappelée ici pour que la
-    * configuration du contexte soit visible depuis le front.
-    *
-    * `suggestions` : questions proposées au-dessus de la barre de saisie à
-    * l'ouverture du chat. Modifiables sans toucher au code.
-    */
-   orizia: {
-       enabled: true,
-       contextRoute: '/context_udm',
-       suggestions: [
-           'Quelle est la signification de ton nom "ORIZIA" ?',
-           "Quelles formations sont proposées à l'UdM?",
-           "Que pense-tu d'une formation en génie logiciel ?",
-       ],
-   },
-

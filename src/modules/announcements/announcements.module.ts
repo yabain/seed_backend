@@ -15,12 +15,14 @@ import {
 import { Admin, AdminSchema } from '../auth/schemas/admin.schema';
 import { Prospect, ProspectSchema } from '../prospects/prospect.schema';
 import { EmailLog, EmailLogSchema } from '../email/email.schema';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { AnnouncementsController } from './announcements.controller';
 import { AnnouncementsService } from './announcements.service';
 import { AnnouncementsCronService } from './announcements-cron.service';
 
 @Module({
   imports: [
+    WhatsappModule,
     MongooseModule.forFeature([
       { name: Announcement.name, schema: AnnouncementSchema },
       { name: AnnouncementSettings.name, schema: AnnouncementSettingsSchema },

@@ -15,7 +15,6 @@ API_PREFIX=api
 # CLIENT_ORIGIN=http://localhost:4200
 CLIENT_ORIGIN=https://seeds.yaba-in.com,https://the-seeds.net,http://localhost:4200
 
-
 # --- Base de données MongoDB Atlas ---
 
 MONGODB_URI=mongodb+srv://contact_db_user:uvBlKmasaM5lg3Pq@clusterseeds.25ibzrj.mongodb.net/?appName=ClusterSeeds
@@ -37,7 +36,6 @@ ADMIN_EMAIL=flambel55@gmail.com
 ADMIN_PASSWORD=admin1234
 
 
-
 # --- E-mail (Nodemailer / SMTP) ---
 
 # Laisser SMTP_HOST vide pour désactiver l'envoi d'e-mails
@@ -54,14 +52,11 @@ SMTP_FROM=dev@yaba-in.com
 
 # Utilisés uniquement si aucun compte actif du back-office n'a "notifyContact" activé.
 
-CONTACT_RECIPIENT_EMAIL=dev@yaba-in.com
+CONTACT_RECIPIENT_EMAIL=contact@the-seeds.net
 
 
 # --- Cryptographie ---
-
 # Clé utilisée pour chiffrer les identifiants SMTP en base de données.
-
-# CRYPT_KEY=changez-moi-par-une-cle-secrete-longue-et-aleatoire
 CRYPT_KEY=HSDu5S4eDFStDZ3n45E4wRZE4xRZ2d10Z1fDF9ZEZv4Z35E4mRZj45ER86oZEiRZGGrHPKMtNZAIUgAEZYzIRU
 
 
@@ -91,3 +86,121 @@ EMAIL_SOCIAL_TWITTER=https://x.com/seedsunleash
 EMAIL_SOCIAL_YOUTUBE=https://www.youtube.com/@seedsunleash
 
 GOOGLE_CLIENT_ID=569864138356-90lu7hrd2n564gm3v4e3unqkg4t2l9u5.apps.googleusercontent.com
+
+
+
+# --- Contenus de démonstration ---
+# « true » : le compte admin et la config du site restent créés au premier
+# lancement, mais plus aucun contenu de démonstration (actualités, ressources,
+# programmes, partenaires) n'est inséré.
+SEED_DISABLED=true
+
+# ============================================================
+#  ORIZIA — assistant IA public (front office, sans compte)
+#  Mêmes paramètres que Merlin (projet eat-app), adaptés à seed.
+# ============================================================
+
+# Interrupteur général : mettre "false" pour désactiver le chat sur tout le site.
+ORIZIA_ENABLED=false
+
+# ============================================================
+#  FOURNISSEUR D'IA : OpenRouter (https://openrouter.ai)
+# ============================================================
+# Clé d'API OpenRouter — commence par « sk-or-v1- ».
+# Laisser vide désactive les réponses : le bouton reste visible et l'API renvoie
+# une erreur explicite.
+#
+ORIZIA_API_KEY=
+
+# Point d'entrée compatible OpenAI. OpenRouter est accepté avec ou sans « /api/v1 » :
+# le code ajoute automatiquement « /api/v1 » si l'URL racine est fournie.
+ORIZIA_BASE_URL=https://openrouter.ai/api/v1
+
+# ---------------------------------------------------------------------------
+#  BASCULE ENTRE MODÈLES (5 maximum)
+# ---------------------------------------------------------------------------
+# Liste de modèles séparés par des virgules, du plus souhaitable au moins
+# souhaitable. Tous ont été vérifiés au catalogue OpenRouter : variante « :free »
+# (entrée ET sortie à 0), contexte ≥ 262 000 jetons, `temperature`, `tools`
+# (function calling) et `reasoning` pris en charge.
+ORIZIA_MODELS=nvidia/nemotron-3-ultra-550b-a55b:free,google/gemma-4-31b-it:free,deepseek/deepseek-v4-flash-0731:free,cohere/north-mini-code:free,thinkingmachines/inkling-small:free
+#
+# Stratégie de sélection :
+#   fallback    (défaut) → toujours le premier modèle ; les suivants ne servent
+#                          qu'en cas d'échec (saturé, quota atteint, indisponible)
+#   round-robin          → le point de départ tourne à chaque question, ce qui
+#                          répartit la charge (les quotas sont appliqués par
+#                          modèle chez la plupart des fournisseurs sous-jacents)
+ORIZIA_MODEL_STRATEGY=fallback
+#
+# ⚠️ PALIER GRATUIT OPENROUTER — les limites portent sur le NOMBRE DE REQUÊTES :
+# environ 20 requêtes/minute et 50 requêtes/jour tant que moins de 10 crédits ont
+# été achetés ; 1 000/jour au-delà. Seules les variantes « :free » sont plafonnées
+# (la variante payante du même modèle ne l'est pas). La bascule entre plusieurs
+# modèles augmente donc la disponibilité, mais le plafond journalier reste celui
+# du compte.
+# Vérifier le quota restant : GET https://openrouter.ai/api/v1/key
+#
+# Note : la variable `ORIZIA_MODEL` (modèle unique) reste acceptée si vous
+# préférez une seule entrée — elle est alors utilisée telle quelle.
+#
+# ⚠️ POLITIQUE DE DONNÉES : les modèles gratuits d'OpenRouter exigent en général
+# l'activation du partage des prompts (Settings → Privacy → « Enable training and
+# logging »). Sans cela, l'API répond « No endpoints found matching your data
+# policy ». À valider avec la direction : les questions des visiteurs seraient
+# alors exploitables par le fournisseur du modèle.
+
+# Créativité : 0 = très factuel, 1 = très libre. Merlin utilise 0.7.
+ORIZIA_TEMPERATURE=0.7
+
+# Effort de raisonnement (low | medium | high). « low » réduit la latence et le
+# nombre de jetons de réflexion. Le modèle Nex-N2.5-Pro le prend en charge ; s'il
+# est refusé par un autre modèle, la requête est rejouée automatiquement sans lui.
+ORIZIA_REASONING_EFFORT=low
+
+# Bornage facultatif de la longueur de réponse, en jetons. Laisser vide pour la
+# valeur par défaut du fournisseur (une valeur trop faible tronquerait les appels
+# d'outils).
+ORIZIA_MAX_TOKENS=
+
+# Répertoire des documents de contexte (identité, règles, données publiques UdM).
+ORIZIA_CONTEXT_DIR=./context_udm
+# Budget maximal du contexte documentaire (caractères).
+ORIZIA_CONTEXT_MAX_CHARS=120000
+ORIZIA_CONTEXT_MAX_CHARS_PER_FILE=40000
+
+# Mémoire : messages précédents envoyés au modèle, et historique conservé en base.
+ORIZIA_CONTEXT_MESSAGES=10
+ORIZIA_MAX_HISTORY=50
+
+# Durée de vie du cache du « contexte dynamique » (millisecondes). Le contexte
+# dynamique (actualités, événements, programmes…) est reconstruit par 11 requêtes
+# MongoDB ; le cache évite de les rejouer à chaque question. Défaut : 60000 (1 min).
+ORIZIA_CONTEXT_CACHE_TTL_MS=60000
+
+# « Aujourd'hui » et le cron de purge utilisent ce fuseau horaire.
+ORIZIA_CRON_TIMEZONE=Africa/Douala
+
+# Délai maximal d'une génération (millisecondes).
+ORIZIA_TIMEOUT_MS=90000
+
+# --- Recherche web (outil « recherche_web », moteur DuckDuckGo, gratuit) ---
+# Permet à Orizia de compléter une réponse par une recherche Internet lorsque son
+# contexte ne suffit pas. Le prompt institutionnel encadre strictement cet usage
+# (questions académiques et informations publiques uniquement).
+ORIZIA_WEB_SEARCH_ENABLED=true
+# Nombre maximal de tours de recherche enchaînables pour une même réponse.
+ORIZIA_WEB_MAX_ROUNDS=3
+# Nombre de résultats renvoyés au modèle par recherche.
+ORIZIA_WEB_MAX_RESULTS=5
+# Garde-fou global : recherches maximales par minute (toutes conversations).
+ORIZIA_WEB_MAX_PER_MINUTE=12
+
+# --- En-têtes d'attribution OpenRouter (facultatifs mais recommandés) ---
+# Laisser vide pour utiliser automatiquement l'URL du site et le nom d'Orizia.
+ORIZIA_HTTP_REFERER=
+ORIZIA_APP_TITLE=SEEDS.AI
+
+# URL publique du site, utilisée pour construire les liens proposés par Orizia.
+# Laissez vide pour retomber sur SITE_URL ou CLIENT_ORIGIN.
+ORIZIA_SITE_URL=
