@@ -8,11 +8,13 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Prospect, ProspectDocument } from './prospect.schema';
+import { Admin, AdminDocument } from '../auth/schemas/admin.schema';
 import { CreateProspectDto, UpdateProspectDto } from './dto/prospect.dto';
 import { MailService } from '../mail/mail.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { SiteService } from '../site/site.service';
+import { whatsappNotificationFooter } from '../../common/utils/frontend-url.util';
 import {
   emailSocialFromSiteConfig,
   emailLogoFromSiteConfig,
@@ -47,6 +49,8 @@ export class ProspectsService {
   constructor(
     @InjectModel(Prospect.name)
     private readonly prospectModel: Model<ProspectDocument>,
+    @InjectModel(Admin.name)
+    private readonly adminModel: Model<AdminDocument>,
     private readonly mailService: MailService,
     private readonly siteService: SiteService,
     private readonly configService: ConfigService,
@@ -144,6 +148,9 @@ export class ProspectsService {
       ),
     );
     void this.sendConfirmationWhatsapp(sanitized);
+    void this.notifyAdminsNewsletter(sanitized).catch((error) =>
+      this.logger.warn('Failed to notify admins of new newsletter:', error),
+    );
 
     return sanitized;
   }
@@ -289,14 +296,74 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
       const siteConfig = await this.siteService.getPublicConfig();
       const orgName = siteConfig.orgName?.trim() || 'notre organisation';
       const name = prospect.name?.trim();
+      const footer = whatsappNotificationFooter(this.configService);
       await this.whatsappService.sendText(
         phone,
-        `✅ ${orgName} — Inscription à la lettre d'information${name ? `\n\nBonjour ${name},` : '\n\nBonjour,'} votre inscription est bien enregistrée. Vous recevrez bientôt nos actualités.`,
+        `✅ ${orgName} — Inscription à la lettre d'information${name ? `\n\nBonjour ${name},` : '\n\nBonjour,'} votre inscription est bien enregistrée. Vous recevrez bientôt nos actualités.\n\n${footer}`,
       );
     } catch (error) {
       this.logger.warn(
         `Confirmation WhatsApp newsletter non envoyée à ${phone} : ${(error as Error)?.message || error}`,
       );
+    }
+  }
+
+  /**
+   * Notifie les admins (notifyNewsletter) d'une nouvelle inscription : envoie
+   * les détails du prospect par e-mail et par WhatsApp.
+   */
+  private async notifyAdminsNewsletter(prospect: ProspectItem): Promise<void> {
+    const admins = await this.adminModel
+      .find({
+        isActive: true,
+        role: { $in: ['admin', 'superadmin'] },
+        notifyNewsletter: { $ne: false },
+        email: { $exists: true, $ne: '' },
+      })
+      .select('email')
+      .lean()
+      .exec();
+    const emails = admins.map((a) => a.email).filter(Boolean);
+
+    if (emails.length) {
+      const siteConfig = await this.siteService.getPublicConfig();
+      const branding = {
+        logo: emailLogoFromSiteConfig(siteConfig, this.configService),
+        orgName: siteConfig.orgName,
+        social: emailSocialFromSiteConfig(siteConfig, this.configService),
+      };
+      const name = prospect.name?.trim();
+      const html = renderEmailLayout({
+        title: "Nouvelle inscription à la lettre d'information",
+        preheader: "Une personne vient de s'inscrire à la lettre d'information.",
+        contentHtml: `
+          <p>Un visiteur vient de s'inscrire à la lettre d'information :</p>
+          ${name ? `<p><strong>Nom :</strong> ${escapeHtml(name)}</p>` : ''}
+          <p><strong>E-mail :</strong> ${escapeHtml(prospect.email)}</p>
+          ${prospect.phone ? `<p><strong>Tél :</strong> ${escapeHtml(prospect.phone)}</p>` : ''}
+        `,
+        branding,
+      });
+      await this.mailService.send({
+        to: emails,
+        subject: "Nouvelle inscription à la lettre d'information",
+        html,
+      });
+    }
+
+    const phones = await this.whatsappService.getAdminPhones('notifyNewsletter');
+    for (const phone of phones) {
+      try {
+        const footer = whatsappNotificationFooter(this.configService);
+        await this.whatsappService.sendText(
+          phone,
+          `🆕 Nouvelle inscription à la lettre d'information\n\nNom : ${prospect.name?.trim() || '—'}\nE-mail : ${prospect.email}\nTél : ${prospect.phone || '—'}\n\n${footer}`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Notification newsletter WhatsApp non envoyée à ${phone} : ${(error as Error)?.message || error}`,
+        );
+      }
     }
   }
 

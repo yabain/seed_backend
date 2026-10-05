@@ -61,4 +61,12 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   notifyWhatsapp?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyRecruitment?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyNewsletter?: boolean;
 }

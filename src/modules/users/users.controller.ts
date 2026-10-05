@@ -105,6 +105,24 @@ export class UsersController {
     });
   }
 
+  /** Invite un compte qui ne s'est jamais connecté (identifiants par e-mail + WhatsApp). */
+  @Post(':id/invite')
+  invite(
+    @Param('id') id: string,
+    @Body() dto: { password?: string },
+    @Req() req: any,
+  ) {
+    const origin = String(req.headers?.['origin'] || '').trim() || undefined;
+    return this.usersService.sendInvite(id, dto?.password || '', origin);
+  }
+
+  /** Envoie un lien de réinitialisation (e-mail + WhatsApp) à un compte connecté. */
+  @Post(':id/forgot-password')
+  forgotPassword(@Param('id') id: string, @Req() req: any) {
+    const origin = String(req.headers?.['origin'] || '').trim() || undefined;
+    return this.usersService.sendPasswordReset(id, origin);
+  }
+
   @Delete(':id')
   remove(
     @Param('id') id: string,

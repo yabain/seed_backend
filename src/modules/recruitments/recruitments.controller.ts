@@ -177,7 +177,7 @@ export class RecruitmentsController {
 
   // ---------- Back-office ----------
   @Get('admin/all')
-  @Roles('admin', 'superadmin')
+  @Roles('admin', 'superadmin', 'consultant', 'user')
   findAllAdmin(
     @Query()
     query: {

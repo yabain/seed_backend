@@ -30,7 +30,7 @@ import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { SiteService } from '../site/site.service';
-import { resolveFrontendBase } from '../../common/utils/frontend-url.util';
+import { resolveFrontendBase, whatsappNotificationFooter } from '../../common/utils/frontend-url.util';
 
 import {
   emailSocialFromSiteConfig,
@@ -148,7 +148,8 @@ export class AuthService {
       return false;
     }
     try {
-      await this.whatsappService.sendText(phone, message);
+      const footer = whatsappNotificationFooter(this.configService);
+      await this.whatsappService.sendText(phone, `${message}\n\n${footer}`);
       return true;
     } catch (error) {
       this.logger.warn(
@@ -655,7 +656,7 @@ export class AuthService {
       loginAttempts: 0,
       lockoutUntil: null,
       twoFactorAttempts: 0,
-      avatar: googleUser.picture || admin.avatar || undefined,
+      avatar: admin.avatar || googleUser.picture || undefined,
     });
 
     const payload = {

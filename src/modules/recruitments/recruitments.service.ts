@@ -37,6 +37,7 @@ import {
   recruitmentApplicationRejectedTemplate,
 } from '../mail/templates/recruitment.templates';
 import { SiteService } from '../site/site.service';
+import { whatsappNotificationFooter } from '../../common/utils/frontend-url.util';
 import {
   emailSocialFromSiteConfig,
   emailLogoFromSiteConfig,
@@ -943,7 +944,7 @@ export class RecruitmentsService {
   }
 
   private async notifyRecruitmentAdminsWhatsapp(message: string): Promise<void> {
-    const phones = await this.whatsappService.getEnabledAdminPhones();
+    const phones = await this.whatsappService.getAdminPhones('notifyRecruitment');
     for (const phone of phones) {
       await this.sendWhatsapp(phone, message);
     }
@@ -974,7 +975,8 @@ export class RecruitmentsService {
     const clean = (phone ?? '').trim();
     if (!clean) return;
     try {
-      await this.whatsappService.sendText(clean, message);
+      const footer = whatsappNotificationFooter(this.configService);
+      await this.whatsappService.sendText(clean, `${message}\n\n${footer}`);
     } catch (error) {
       this.logger.warn(
         `Message WhatsApp recrutement non envoyé à ${clean} : ${(error as Error)?.message || error}`,
@@ -1037,6 +1039,7 @@ export class RecruitmentsService {
       .find({
         isActive: true,
         role: { $in: ['admin', 'superadmin'] },
+        notifyRecruitment: { $ne: false },
         email: { $exists: true, $ne: '' },
       })
       .select('email')

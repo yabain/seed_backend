@@ -62,6 +62,12 @@ export class Admin {
   @Prop({ default: true })
   notifyWhatsapp: boolean;
 
+  @Prop({ default: true })
+  notifyRecruitment: boolean;
+
+  @Prop({ default: true })
+  notifyNewsletter: boolean;
+
   @Prop()
   lastLoginAt: Date;
 

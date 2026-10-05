@@ -3,12 +3,25 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PageView, PageViewDocument } from './schemas/page-view.schema';
 import { CreatePageViewDto } from './dto/create-page-view.dto';
+import { RecruitmentApplication } from '../recruitments/schemas/recruitment-application.schema';
+
+type Bucket = { date: string; pageViews: number; visits: number; shares: number };
+
+/** Prépare un filtre `path` par préfixe (expression régulière échappée). */
+function pathFilter(path?: string): Record<string, unknown> | null {
+  const value = String(path || '').trim();
+  if (!value) return null;
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return { path: { $regex: `^${escaped}` } };
+}
 
 @Injectable()
 export class StatsService {
   constructor(
     @InjectModel(PageView.name)
     private readonly pageViewModel: Model<PageViewDocument>,
+    @InjectModel(RecruitmentApplication.name)
+    private readonly applicationModel: Model<RecruitmentApplication>,
   ) {}
 
   async record(dto: CreatePageViewDto): Promise<void> {
@@ -34,6 +47,17 @@ export class StatsService {
       path: dto.path,
       visitorId: dto.visitorId,
       type,
+      referrer: dto.referrer ?? '',
+      userAgent: dto.userAgent ?? '',
+    });
+  }
+
+  /** Enregistre un clic sur le bouton de partage d'un item. */
+  async recordShare(dto: CreatePageViewDto): Promise<void> {
+    await this.pageViewModel.create({
+      path: dto.path,
+      visitorId: dto.visitorId,
+      type: 'share',
       referrer: dto.referrer ?? '',
       userAgent: dto.userAgent ?? '',
     });
@@ -75,8 +99,8 @@ export class StatsService {
 
   async dailySeries(
     days = 14,
-  ): Promise<{ date: string; pageViews: number; visits: number }[]> {
-    // Minuit UTC du premier jour (aligné avec $dateToString côté Mongo)
+    path?: string,
+  ): Promise<Bucket[]> {
     const now = new Date();
     const startUtcMs = Date.UTC(
       now.getUTCFullYear(),
@@ -84,42 +108,40 @@ export class StatsService {
       now.getUTCDate() - (days - 1),
     );
     const start = new Date(startUtcMs);
+    const filter = pathFilter(path) ?? {};
 
-    const rows = await this.pageViewModel
-      .aggregate<{ _id: { type: string; iso: string }; count: number }>([
-        { $match: { createdAt: { $gte: start } } },
-        {
-          $group: {
-            _id: {
-              type: '$type',
-              iso: {
-                $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-              },
-            },
-            count: { $sum: 1 },
+    const rows = await this.pageViewModel.aggregate<
+      { _id: { type: string; iso: string }; count: number }
+    >([
+      { $match: { createdAt: { $gte: start }, ...filter } },
+      {
+        $group: {
+          _id: {
+            type: '$type',
+            iso: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
           },
+          count: { $sum: 1 },
         },
-      ])
-      .exec();
+      },
+    ]).exec();
 
-    const byDate: Record<string, { pageViews: number; visits: number }> = {};
+    const byDate: Record<
+      string,
+      { pageViews: number; visits: number; shares: number }
+    > = {};
     for (let i = 0; i < days; i++) {
       const key = new Date(startUtcMs + i * 86_400_000)
         .toISOString()
         .slice(0, 10);
-      byDate[key] = { pageViews: 0, visits: 0 };
+      byDate[key] = { pageViews: 0, visits: 0, shares: 0 };
     }
 
     for (const row of rows) {
-      const key = row._id.iso;
-      if (byDate[key]) {
-        if (row._id.type === 'pageview') {
-          byDate[key].pageViews += row.count;
-        }
-        if (row._id.type === 'visit') {
-          byDate[key].visits += row.count;
-        }
-      }
+      const entry = byDate[row._id.iso];
+      if (!entry) continue;
+      if (row._id.type === 'pageview') entry.pageViews += row.count;
+      if (row._id.type === 'visit') entry.visits += row.count;
+      if (row._id.type === 'share') entry.shares += row.count;
     }
 
     return Object.entries(byDate).map(([date, value]) => ({ date, ...value }));
@@ -127,109 +149,110 @@ export class StatsService {
 
   async series(
     range: '24h' | '7d' | '30d' | '12m',
-  ): Promise<{ date: string; pageViews: number; visits: number }[]> {
-    if (range === '24h') {
-      const now = Date.now();
-      // Top de l'heure courante (UTC), puis 24 buckets horaires
-      const startMs = Math.floor(now / 3_600_000) * 3_600_000 - 23 * 3_600_000;
-
-      const rows = await this.pageViewModel
-        .aggregate<{ _id: { type: string; iso: string }; count: number }>([
-          { $match: { createdAt: { $gte: new Date(startMs) } } },
-          {
-            $group: {
-              _id: {
-                type: '$type',
-                iso: {
-                  $dateToString: { format: '%Y-%m-%dT%H', date: '$createdAt' },
-                },
-              },
-              count: { $sum: 1 },
-            },
-          },
-        ])
-        .exec();
-
-      const buckets = new Map<string, { pageViews: number; visits: number }>();
-      for (let i = 0; i < 24; i++) {
-        const key = new Date(startMs + i * 3_600_000)
-          .toISOString()
-          .slice(0, 13);
-        buckets.set(key, { pageViews: 0, visits: 0 });
-      }
-
+    path?: string,
+  ): Promise<Bucket[]> {
+    const fillBuckets = (
+      map: Map<string, { pageViews: number; visits: number; shares: number }>,
+      rows: Array<{ _id: { type: string; iso: string }; count: number }>,
+    ) => {
       for (const row of rows) {
-        const bucket = buckets.get(row._id.iso);
+        const bucket = map.get(row._id.iso);
         if (!bucket) continue;
         if (row._id.type === 'pageview') bucket.pageViews += row.count;
         if (row._id.type === 'visit') bucket.visits += row.count;
+        if (row._id.type === 'share') bucket.shares += row.count;
       }
+      return [...map.entries()].map(([date, value]) => ({ date, ...value }));
+    };
 
-      return [...buckets.entries()].map(([date, value]) => ({
-        date,
-        ...value,
-      }));
+    const filter = pathFilter(path) ?? {};
+
+    if (range === '24h') {
+      const nowMs = Date.now();
+      const startMs = Math.floor(nowMs / 3_600_000) * 3_600_000 - 23 * 3_600_000;
+      const rows = await this.pageViewModel.aggregate<
+        { _id: { type: string; iso: string }; count: number }
+      >([
+        { $match: { createdAt: { $gte: new Date(startMs) }, ...filter } },
+        {
+          $group: {
+            _id: {
+              type: '$type',
+              iso: { $dateToString: { format: '%Y-%m-%dT%H', date: '$createdAt' } },
+            },
+            count: { $sum: 1 },
+          },
+        },
+      ]).exec();
+
+      const buckets = new Map<string, { pageViews: number; visits: number; shares: number }>();
+      for (let i = 0; i < 24; i++) {
+        const key = new Date(startMs + i * 3_600_000).toISOString().slice(0, 13);
+        buckets.set(key, { pageViews: 0, visits: 0, shares: 0 });
+      }
+      return fillBuckets(buckets, rows);
     }
 
     if (range === '12m') {
       const now = new Date();
-      // 1er jour du mois, il y a 11 mois (aligné UTC)
-      const start = new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1),
-      );
-
-      const rows = await this.pageViewModel
-        .aggregate<{ _id: { type: string; iso: string }; count: number }>([
-          { $match: { createdAt: { $gte: start } } },
-          {
-            $group: {
-              _id: {
-                type: '$type',
-                iso: {
-                  $dateToString: { format: '%Y-%m', date: '$createdAt' },
-                },
-              },
-              count: { $sum: 1 },
+      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1));
+      const rows = await this.pageViewModel.aggregate<
+        { _id: { type: string; iso: string }; count: number }
+      >([
+        { $match: { createdAt: { $gte: start }, ...filter } },
+        {
+          $group: {
+            _id: {
+              type: '$type',
+              iso: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
             },
+            count: { $sum: 1 },
           },
-        ])
-        .exec();
+        },
+      ]).exec();
 
-      const buckets = new Map<string, { pageViews: number; visits: number }>();
+      const buckets = new Map<string, { pageViews: number; visits: number; shares: number }>();
       for (let i = 0; i < 12; i++) {
         const key = new Date(
           Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + i, 1),
         )
           .toISOString()
           .slice(0, 7);
-        buckets.set(key, { pageViews: 0, visits: 0 });
+        buckets.set(key, { pageViews: 0, visits: 0, shares: 0 });
       }
-
-      for (const row of rows) {
-        const bucket = buckets.get(row._id.iso);
-        if (!bucket) continue;
-        if (row._id.type === 'pageview') bucket.pageViews += row.count;
-        if (row._id.type === 'visit') bucket.visits += row.count;
-      }
-
-      return [...buckets.entries()].map(([date, value]) => ({
-        date,
-        ...value,
-      }));
+      return fillBuckets(buckets, rows);
     }
 
-    return this.dailySeries(range === '30d' ? 30 : 7);
+    return this.dailySeries(range === '30d' ? 30 : 7, path);
   }
 
   async topPages(limit = 10): Promise<{ path: string; count: number }[]> {
-    return this.pageViewModel
-      .aggregate<{ _id: string; count: number }>([
-        { $match: { type: 'pageview' } },
-        { $group: { _id: '$path', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: limit },
-      ])
-      .exec()
-      .then((rows) => rows.map((row) => ({ path: row._id, count: row.count })));
+    return this.pageViewModel.aggregate<{ _id: string; count: number }>([
+      { $match: { type: 'pageview' } },
+      { $group: { _id: '$path', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: limit },
+    ]).exec().then((rows) =>
+      rows.map((row) => ({ path: row._id, count: row.count })),
+    );
+  }
+
+  /** Totaux d'un item (vues, partages, candidatures) par préfixe de chemin. */
+  async itemStats(
+    path: string,
+  ): Promise<{ views: number; shares: number; applications: number }> {
+    const filter = { path: { $regex: `^${String(path).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}` } };
+    const [views, shares, applications] = await Promise.all([
+      this.pageViewModel.countDocuments({ ...filter, type: 'pageview' }).exec(),
+      this.pageViewModel.countDocuments({ ...filter, type: 'share' }).exec(),
+      this.countApplicationsForPath(path),
+    ]);
+    return { views, shares, applications };
+  }
+
+  private async countApplicationsForPath(path: string): Promise<number> {
+    const match = /^\/recruitments\/([^/?#]+)/.exec(String(path || ''));
+    if (!match) return 0;
+    return this.applicationModel.countDocuments({ campaignId: match[1] }).exec();
   }
 }

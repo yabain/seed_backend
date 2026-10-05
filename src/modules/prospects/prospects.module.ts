@@ -9,6 +9,7 @@ import { Prospect, ProspectSchema } from './prospect.schema';
 import { MailModule } from '../mail/mail.module';
 import { SiteModule } from '../site/site.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
+import { Admin, AdminSchema } from '../auth/schemas/admin.schema';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
     WhatsappModule,
     MongooseModule.forFeature([
       { name: Prospect.name, schema: ProspectSchema },
+      { name: Admin.name, schema: AdminSchema },
     ]),
     MailModule,
   ],

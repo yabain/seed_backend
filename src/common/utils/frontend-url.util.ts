@@ -60,3 +60,25 @@ export function resolveOgpFrontendBase(
   }
   return resolveFrontendBase(undefined, configService);
 }
+
+/**
+ * Pied de page ajouté à TOUS les messages WhatsApp envoyés automatiquement
+ * (2FA, reset, identifiants, contact, newsletter, candidatures) — jamais aux
+ * annonces rédigées manuellement. Le domaine est tiré de l'origine du front
+ * (ex. udm.cm), ou surchargé par WHATSAPP_NOTIF_SIGNATURE si défini.
+ */
+export function whatsappNotificationFooter(
+  configService?: ConfigService,
+): string {
+  const explicit = configService?.get<string>('WHATSAPP_NOTIF_SIGNATURE');
+  if (explicit && explicit.trim()) {
+    return explicit.trim();
+  }
+  let host = '';
+  try {
+    host = new URL(resolveFrontendBase(undefined, configService)).host;
+  } catch {
+    host = '';
+  }
+  return `> Ceci est un message automatique généré par notre système${host ? ` ${host}` : ''}`;
+}

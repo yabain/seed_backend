@@ -63,6 +63,14 @@ export class CreateUserDto {
   notifyWhatsapp?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  notifyRecruitment?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyNewsletter?: boolean;
+
+  @IsOptional()
   @IsString()
   @MaxLength(255)
   @Matches(/^https?:\/\/[^\s]+$/i, {

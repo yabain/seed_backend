@@ -47,14 +47,19 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   /**
-   * Règle harmonisée de notification admin WhatsApp : comptes actifs avec le
-   * canal WhatsApp activé et un numéro de téléphone renseigné.
+   * Numéros WhatsApp des destinataires d'une notification : admins / super-admins
+   * actifs, avec le canal WhatsApp ET le type de notification activés, et un
+   * numéro renseigné. `flag` = `notifyContact` | `notifyRecruitment` | `notifyNewsletter`.
    */
-  async getEnabledAdminPhones(): Promise<string[]> {
+  async getAdminPhones(
+    flag: 'notifyContact' | 'notifyRecruitment' | 'notifyNewsletter',
+  ): Promise<string[]> {
     const admins = await this.adminModel
       .find({
         isActive: true,
+        role: { $in: ['admin', 'superadmin'] },
         notifyWhatsapp: { $ne: false },
+        [flag]: { $ne: false },
         phone: { $exists: true, $ne: '' },
       })
       .select('phone')

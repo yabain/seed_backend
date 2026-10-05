@@ -10,6 +10,7 @@ import { News, NewsSchema } from '../news/schemas/news.schema';
 import { Resource, ResourceSchema } from '../resources/schemas/resource.schema';
 import { Event, EventSchema } from '../events/schemas/event.schema';
 import { RecruitmentCampaign, RecruitmentCampaignSchema } from '../recruitments/schemas/recruitment-campaign.schema';
+import { RecruitmentApplication, RecruitmentApplicationSchema } from '../recruitments/schemas/recruitment-application.schema';
 import { Program, ProgramSchema } from '../programs/schemas/program.schema';
 import { Impact, ImpactSchema } from '../impacts/schemas/impact.schema';
 import { Partner, PartnerSchema } from '../partners/schemas/partner.schema';
@@ -24,6 +25,10 @@ import { DonationMethod, DonationMethodSchema } from '../donations/schemas/donat
       { name: Resource.name, schema: ResourceSchema },
       { name: Event.name, schema: EventSchema },
       { name: RecruitmentCampaign.name, schema: RecruitmentCampaignSchema },
+      {
+        name: RecruitmentApplication.name,
+        schema: RecruitmentApplicationSchema,
+      },
       { name: Program.name, schema: ProgramSchema },
       { name: Impact.name, schema: ImpactSchema },
       { name: Partner.name, schema: PartnerSchema },

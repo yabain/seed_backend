@@ -73,7 +73,7 @@ export function contactNotificationTemplate(
   `;
 
   return renderEmailLayout({
-    title: `Nouveau message de contact — ${payload.subject}`,
+    title: `Nouveau message de contact : ${payload.subject}`,
     preheader: `${payload.name} (${payload.email}) a envoyé un message sur le site ${orgName}.`,
     contentHtml,
     colors,

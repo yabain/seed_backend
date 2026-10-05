@@ -17,6 +17,7 @@ import {
   type ContactTemplateOptions,
 } from '../mail/templates/contact.templates';
 import { SiteService } from '../site/site.service';
+import { whatsappNotificationFooter } from '../../common/utils/frontend-url.util';
 import {
   emailSocialFromSiteConfig,
   emailLogoFromSiteConfig,
@@ -67,7 +68,7 @@ export class ContactService {
     // 1) Notification aux administrateurs (avec récapitulatif complet).
     await this.mailService.send({
       to: recipients,
-      subject: `Nouveau message de contact — ${dto.subject}`,
+      subject: `Nouveau message de contact : ${dto.subject}`,
       html: contactNotificationTemplate({
         payload: fromVisitor,
         colors,
@@ -90,7 +91,7 @@ export class ContactService {
     // 3) WhatsApp (best effort) : notification aux admins + accusé au visiteur.
     const siteOrg = siteConfig.orgName?.trim() || 'Organisation';
     const messageForAdmin = [
-      `🆕 Nouveau message de contact — ${siteOrg}`,
+      `🆕 Nouveau message de contact : ${siteOrg}`,
       dto.name ? `\nDe : ${dto.name}` : '',
       dto.email ? `\nE-mail : ${dto.email}` : '',
       dto.phone ? `\nTél : ${dto.phone}` : '',
@@ -110,9 +111,9 @@ export class ContactService {
     return message;
   }
 
-  /** Notifie les admins WhatsApp (règle harmonisée) par WhatsApp. */
+  /** Notifie les admins (notifyContact) par WhatsApp. */
   private async notifyAdminsWhatsapp(message: string): Promise<void> {
-    const phones = await this.whatsappService.getEnabledAdminPhones();
+    const phones = await this.whatsappService.getAdminPhones('notifyContact');
     for (const phone of phones) {
       await this.sendWhatsapp(phone, message);
     }
@@ -122,7 +123,8 @@ export class ContactService {
     const clean = (phone ?? '').trim();
     if (!clean) return;
     try {
-      await this.whatsappService.sendText(clean, message);
+      const footer = whatsappNotificationFooter(this.configService);
+      await this.whatsappService.sendText(clean, `${message}\n\n${footer}`);
     } catch (error) {
       this.logger.warn(
         `Message WhatsApp contact non envoyé à ${clean} : ${(error as Error)?.message || error}`,
@@ -130,11 +132,12 @@ export class ContactService {
     }
   }
 
-  /** Détermine les destinataires de la notification : les comptes actifs ayant `notifyContact: true`. */
+  /** Destinataires e-mail de la notification : admins/super-admins actifs avec `notifyContact: true`. */
   private async resolveRecipients(): Promise<string[]> {
     const admins = await this.adminModel
       .find({
         isActive: true,
+        role: { $in: ['admin', 'superadmin'] },
         notifyContact: true,
         email: { $exists: true, $ne: '' },
       })

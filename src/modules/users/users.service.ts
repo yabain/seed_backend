@@ -9,6 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
+import { createHash, randomBytes } from 'node:crypto';
 import { Model, isValidObjectId } from 'mongoose';
 import {
   Admin,
@@ -16,6 +17,10 @@ import {
   ROLE_LEVEL,
   UserRole,
 } from '../auth/schemas/admin.schema';
+import {
+  PasswordResetToken,
+  PasswordResetTokenDocument,
+} from '../auth/schemas/password-reset-token.schema';
 import { UserLog, UserLogDocument } from './schemas/user-log.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -23,7 +28,9 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { MailService } from '../mail/mail.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { SiteService } from '../site/site.service';
+import { whatsappNotificationFooter } from '../../common/utils/frontend-url.util';
 import { accountCredentialsTemplate } from '../mail/templates/account.templates';
+import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import {
   emailSocialFromSiteConfig,
   emailLogoFromSiteConfig,
@@ -86,6 +93,8 @@ export interface UsersListResult {
     isActive: boolean;
     notifyContact: boolean;
     notifyWhatsapp: boolean;
+    notifyRecruitment: boolean;
+    notifyNewsletter: boolean;
     lastLoginAt?: string;
     createdAt: string;
   }>;
@@ -114,6 +123,8 @@ export interface SanitizedAdmin {
   isActive: boolean;
   notifyContact: boolean;
   notifyWhatsapp: boolean;
+  notifyRecruitment: boolean;
+  notifyNewsletter: boolean;
   lastLoginAt?: string;
   createdAt: string;
 }
@@ -126,6 +137,8 @@ export class UsersService {
     @InjectModel(Admin.name) private readonly adminModel: Model<AdminDocument>,
     @InjectModel(UserLog.name)
     private readonly userLogModel: Model<UserLogDocument>,
+    @InjectModel(PasswordResetToken.name)
+    private readonly passwordResetTokenModel: Model<PasswordResetTokenDocument>,
     private readonly mailService: MailService,
     private readonly siteService: SiteService,
     private readonly configService: ConfigService,
@@ -154,6 +167,8 @@ export class UsersService {
       isActive: (withoutPassword.isActive as boolean) ?? true,
       notifyContact: (withoutPassword.notifyContact as boolean) ?? true,
       notifyWhatsapp: (withoutPassword.notifyWhatsapp as boolean) ?? true,
+      notifyRecruitment: (withoutPassword.notifyRecruitment as boolean) ?? true,
+      notifyNewsletter: (withoutPassword.notifyNewsletter as boolean) ?? true,
       lastLoginAt:
         (withoutPassword.lastLoginAt as string | undefined) ?? undefined,
       createdAt:
@@ -284,6 +299,192 @@ export class UsersService {
     return this.sanitize(admin);
   }
 
+  /**
+   * Invitation d'un compte QUI NE S'EST JAMAIS CONNECTÉ : on génère un mot de
+   * passe provisoire, on l'enregistre (haché) et on l'envoie par e-mail ET par
+   * WhatsApp afin que l'utilisateur puisse se connecter avec son e-mail et ce
+   * mot de passe.
+   */
+  async sendInvite(id: string, password: string, origin?: string) {
+    if (!isValidObjectId(id)) {
+      throw new NotFoundException('Compte introuvable');
+    }
+    const admin = await this.adminModel.findById(id).exec();
+    if (!admin) {
+      throw new NotFoundException('Compte introuvable');
+    }
+    if (admin.lastLoginAt) {
+      throw new BadRequestException(
+        "Ce compte s'est déjà connecté : utilisez « Mot de passe oublié ».",
+      );
+    }
+    if (!password || password.length < 8) {
+      throw new BadRequestException(
+        'Le mot de passe doit contenir au moins 8 caractères.',
+      );
+    }
+
+    const hashed = await bcrypt.hash(password, 10);
+    admin.password = hashed;
+    admin.loginAttempts = 0;
+    admin.lockoutUntil = null;
+    await admin.save();
+
+    await this.sendInviteNotification(admin, password, origin);
+    return {
+      success: true,
+      message: 'Invitation envoyée par e-mail et WhatsApp.',
+    };
+  }
+
+  /**
+   * « Mot de passe oublié » pour un compte QUI S'EST DÉJÀ CONNECTÉ : envoie un
+   * lien de réinitialisation par e-mail ET par WhatsApp.
+   */
+  async sendPasswordReset(id: string, origin?: string) {
+    if (!isValidObjectId(id)) {
+      throw new NotFoundException('Compte introuvable');
+    }
+    const admin = await this.adminModel.findById(id).lean().exec();
+    if (!admin) {
+      throw new NotFoundException('Compte introuvable');
+    }
+    if (!admin.lastLoginAt) {
+      throw new BadRequestException(
+        "Ce compte ne s'est jamais connecté : utilisez « Inviter ».",
+      );
+    }
+
+    await this.passwordResetTokenModel
+      .updateMany(
+        { adminId: id, used: false, expiresAt: { $gt: new Date() } },
+        { used: true },
+      )
+      .exec();
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await this.passwordResetTokenModel.create({
+      adminId: id,
+      tokenHash: createHash('sha256').update(token).digest('hex'),
+      used: false,
+      expiresAt,
+    });
+
+    const frontUrl = this.buildFrontUrl(undefined, origin);
+    const resetUrl = `${frontUrl}/admin/reset-password?token=${token}`;
+    const siteConfig = await this.siteService.getPublicConfig();
+    const orgName = siteConfig.orgName?.trim() || 'Organisation';
+    const branding = {
+      logo: emailLogoFromSiteConfig(siteConfig, this.configService),
+      orgName: siteConfig.orgName,
+      social: emailSocialFromSiteConfig(siteConfig, this.configService),
+    };
+
+    const html = renderEmailLayout({
+      title: 'Réinitialisation de votre mot de passe',
+      preheader:
+        'Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe. Ce lien expire dans 1 heure.',
+      contentHtml: `
+        <p style="margin:0 0 16px;">Bonjour <strong>${escapeHtml(admin.name)}</strong>,</p>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td align="center" style="background:#0f766e;border-radius:8px;padding:14px 24px;">
+              <a href="${escapeHtml(resetUrl)}" style="color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;">Réinitialiser mon mot de passe</a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 0;color:#475569;font-size:14px;word-break:break-all;">${escapeHtml(resetUrl)}</p>
+        <p style="margin:0;color:#475569;font-size:14px;">Ce lien est valable pendant <strong>1 heure</strong>.</p>
+      `,
+      branding,
+    });
+
+    await this.mailService.send({
+      to: admin.email,
+      subject: `Réinitialisation de votre mot de passe — ${orgName}`,
+      html,
+    });
+
+    if (admin.phone && admin.notifyWhatsapp !== false) {
+      try {
+        const footer = whatsappNotificationFooter(this.configService);
+        await this.whatsappService.sendText(
+          admin.phone,
+          `🔑 ${orgName} — Réinitialisation de votre mot de passe${admin.name ? `\n\nBonjour ${admin.name},` : ''}\n\nPour choisir un nouveau mot de passe, ouvrez ce lien dans les 60 prochaines minutes :\n${resetUrl}\n\n${footer}`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Reset password WhatsApp non envoyé à ${admin.phone} : ${(error as Error)?.message || error}`,
+        );
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Lien de réinitialisation envoyé par e-mail et WhatsApp.',
+    };
+  }
+
+  private async sendInviteNotification(
+    admin: AdminDocument,
+    password: string,
+    origin?: string,
+  ): Promise<void> {
+    try {
+      const siteConfig = await this.siteService.getPublicConfig();
+      const frontUrl = this.buildFrontUrl(undefined, origin);
+      const sent = await this.mailService.send({
+        to: admin.email,
+        subject: `Votre compte ${siteConfig.orgName || 'Organisation'} — invitation à vous connecter`,
+        html: accountCredentialsTemplate({
+          name: admin.name,
+          email: admin.email,
+          password,
+          roleLabel: ROLE_LABELS[admin.role] ?? admin.role,
+          loginUrl: `${frontUrl}/admin/login`,
+          siteLink: frontUrl,
+          colors: {
+            primary: siteConfig.primaryColor,
+            secondary: siteConfig.secondaryColor,
+          },
+          branding: {
+            logo: emailLogoFromSiteConfig(siteConfig, this.configService),
+            orgName: siteConfig.orgName,
+            social: emailSocialFromSiteConfig(siteConfig, this.configService),
+          },
+        }),
+      });
+      if (!sent) {
+        this.logger.warn(
+          `Invitation non envoyée à ${admin.email} : SMTP non configuré.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Échec de l'envoi de l'invitation à ${admin.email} :`,
+        error,
+      );
+    }
+
+    if (admin.phone && admin.notifyWhatsapp !== false) {
+      try {
+        const siteConfig = await this.siteService.getPublicConfig();
+        const orgName = siteConfig.orgName?.trim() || 'Organisation';
+        const frontUrl = this.buildFrontUrl(undefined, origin);
+        const footer = whatsappNotificationFooter(this.configService);
+        await this.whatsappService.sendText(
+          admin.phone,
+          `🆕 ${orgName} — Votre compte a été créé${admin.name ? `\n\nBonjour ${admin.name},` : ''}\n\nConnectez-vous avec vos identifiants :\n\nE-mail : ${admin.email}\nMot de passe : ${password}\n\n${frontUrl}/admin/login\n\n${footer}`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Invitation WhatsApp non envoyée à ${admin.phone} : ${(error as Error)?.message || error}`,
+        );
+      }
+    }
+  }
+
   async getUserLogs(
     userId: string,
     page: number,
@@ -379,6 +580,9 @@ export class UsersService {
     const hashed = await bcrypt.hash(dto.password, 10);
     const firstName = dto.firstName?.trim() ?? '';
     const lastName = dto.lastName?.trim() ?? '';
+    const role = dto.role ?? 'user';
+    // Par défaut, les notifications sont désactivées SAUF pour un admin/super-admin.
+    const defaultNotify = role === 'admin' || role === 'superadmin';
     const created = await this.adminModel.create({
       firstName,
       lastName,
@@ -386,10 +590,12 @@ export class UsersService {
       email: dto.email.toLowerCase().trim(),
       password: hashed,
       phone: dto.phone ?? '',
-      role: dto.role ?? 'user',
+      role,
       isActive: dto.isActive ?? true,
-      notifyContact: dto.notifyContact ?? true,
+      notifyContact: dto.notifyContact ?? defaultNotify,
       notifyWhatsapp: dto.notifyWhatsapp ?? true,
+      notifyRecruitment: dto.notifyRecruitment ?? defaultNotify,
+      notifyNewsletter: dto.notifyNewsletter ?? defaultNotify,
     });
 
     const sanitized = this.sanitize(
@@ -476,9 +682,10 @@ export class UsersService {
         const siteConfig = await this.siteService.getPublicConfig();
         const orgName = siteConfig.orgName?.trim() || 'Organisation';
         const frontUrl = this.buildFrontUrl(siteUrl, origin);
+        const footer = whatsappNotificationFooter(this.configService);
         await this.whatsappService.sendText(
           admin.phone,
-          `🆕 ${orgName} — Vos identifiants de connexion\n\nBonjour ${admin.name},\n\nVotre compte a été créé. Voici vos identifiants pour vous connecter :\n\nE-mail : ${admin.email}\nMot de passe : ${password}\n\nConnectez-vous ici : ${frontUrl}/admin/login\n\nPour des raisons de sécurité, pensez à changer ce mot de passe lors de votre première connexion.`,
+          `🆕 ${orgName} — Vos identifiants de connexion\n\nBonjour ${admin.name},\n\nVotre compte a été créé. Voici vos identifiants pour vous connecter :\n\nE-mail : ${admin.email}\nMot de passe : ${password}\n\nConnectez-vous ici : ${frontUrl}/admin/login\n\nPour des raisons de sécurité, pensez à changer ce mot de passe lors de votre première connexion.\n\n${footer}`,
         );
       } catch (error) {
         this.logger.warn(
@@ -510,6 +717,16 @@ export class UsersService {
     }
 
     const updateData: Record<string, unknown> = { ...dto };
+    // Retrait du statut admin/super-admin → désactivation automatique des notifications.
+    if (
+      dto.role !== undefined &&
+      dto.role !== 'admin' &&
+      dto.role !== 'superadmin'
+    ) {
+      updateData.notifyContact = false;
+      updateData.notifyRecruitment = false;
+      updateData.notifyNewsletter = false;
+    }
     if (dto.email) {
       updateData.email = dto.email.toLowerCase().trim();
       const conflicting = await this.adminModel
