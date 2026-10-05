@@ -627,7 +627,7 @@ export class AuthService {
         userAgent,
       });
       throw new UnauthorizedException(
-        'Aucun compte administrateur associé à cette adresse e-mail. Contactez un administrateur.',
+        'Aucun compte associé à cette adresse e-mail. Contactez un administrateur.',
       );
     }
 

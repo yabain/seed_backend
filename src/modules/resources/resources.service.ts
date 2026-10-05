@@ -104,6 +104,23 @@ export class ResourcesService {
     return resource;
   }
 
+  /** Ressource publique (publiée, non archivée) par id — pour l'Open Graph. */
+  async findOnePublic(id: string): Promise<Resource> {
+    const realId = this.ensureId(id);
+    const resource = await this.resourceModel
+      .findOne({
+        _id: realId,
+        isPublished: true,
+        isArchived: { $ne: true },
+      })
+      .lean()
+      .exec();
+    if (!resource) {
+      throw new NotFoundException('Ressource introuvable');
+    }
+    return resource;
+  }
+
   async update(id: string, dto: UpdateResourceDto): Promise<Resource> {
     const realId = this.ensureId(id);
     const resource = await this.resourceModel

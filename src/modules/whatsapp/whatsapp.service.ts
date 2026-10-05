@@ -5,6 +5,9 @@ import { isAbsolute, join } from "path";
 import * as QRCode from "qrcode";
 import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 import { PlatformSettingsService } from "../platform-settings/platform-settings.service";
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Admin } from '../auth/schemas/admin.schema';
 
 export interface WhatsappGatewayHealth {
   status: string;
@@ -40,7 +43,25 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly platformSettingsService: PlatformSettingsService,
+    @InjectModel(Admin.name) private readonly adminModel: Model<Admin>,
   ) {}
+
+  /**
+   * Règle harmonisée de notification admin WhatsApp : comptes actifs avec le
+   * canal WhatsApp activé et un numéro de téléphone renseigné.
+   */
+  async getEnabledAdminPhones(): Promise<string[]> {
+    const admins = await this.adminModel
+      .find({
+        isActive: true,
+        notifyWhatsapp: { $ne: false },
+        phone: { $exists: true, $ne: '' },
+      })
+      .select('phone')
+      .lean()
+      .exec();
+    return admins.map((a) => a.phone).filter((p): p is string => !!p);
+  }
 
   private async loadGwFromDb(): Promise<{ url: string; decryptedPassword: string } | null> {
     return this.platformSettingsService.getWhatsappGatewayFromDb();

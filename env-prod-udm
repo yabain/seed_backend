@@ -28,9 +28,9 @@ ADMIN_PASSWORD=admin1234
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
 SMTP_SECURE=true
-SMTP_USER=dev@yaba-in.com
-SMTP_PASSWORD=tkeyiusxaxechyez
-SMTP_FROM=dev@yaba-in.com
+SMTP_USER=no-reply@udm.cm
+SMTP_PASSWORD=yydajqwondipdxzq
+SMTP_FROM=no-reply@udm.cm
 
 # Destinataires de secours des notifications de contact (séparés par des virgules).
 # Utilisés uniquement si aucun compte actif du back-office n'a "notifyContact" activé.

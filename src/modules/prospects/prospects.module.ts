@@ -8,10 +8,12 @@ import { ProspectsService } from './prospects.service';
 import { Prospect, ProspectSchema } from './prospect.schema';
 import { MailModule } from '../mail/mail.module';
 import { SiteModule } from '../site/site.module';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [
     SiteModule,
+    WhatsappModule,
     MongooseModule.forFeature([
       { name: Prospect.name, schema: ProspectSchema },
     ]),

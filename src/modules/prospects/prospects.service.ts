@@ -10,6 +10,7 @@ import { Model } from 'mongoose';
 import { Prospect, ProspectDocument } from './prospect.schema';
 import { CreateProspectDto, UpdateProspectDto } from './dto/prospect.dto';
 import { MailService } from '../mail/mail.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { SiteService } from '../site/site.service';
 import {
@@ -49,6 +50,7 @@ export class ProspectsService {
     private readonly mailService: MailService,
     private readonly siteService: SiteService,
     private readonly configService: ConfigService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   async list(page = 1, limit = 25, keyword = ''): Promise<ProspectListResult> {
@@ -141,6 +143,7 @@ export class ProspectsService {
         error,
       ),
     );
+    void this.sendConfirmationWhatsapp(sanitized);
 
     return sanitized;
   }
@@ -248,7 +251,7 @@ export class ProspectsService {
     };
   }
 
-  private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
+private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
     if (!prospect.email) return;
 
     const siteConfig = await this.siteService.getPublicConfig();
@@ -276,6 +279,25 @@ export class ProspectsService {
       subject: `Bienvenue chez ${siteConfig.orgName?.trim() || 'notre organisation'} — Lettre d'information`,
       html,
     });
+  }
+
+  /** Accusé d'inscription à la newsletter par WhatsApp (si un numéro est fourni). */
+  private async sendConfirmationWhatsapp(prospect: ProspectItem): Promise<void> {
+    const phone = (prospect.phone ?? '').trim();
+    if (!phone) return;
+    try {
+      const siteConfig = await this.siteService.getPublicConfig();
+      const orgName = siteConfig.orgName?.trim() || 'notre organisation';
+      const name = prospect.name?.trim();
+      await this.whatsappService.sendText(
+        phone,
+        `✅ ${orgName} — Inscription à la lettre d'information${name ? `\n\nBonjour ${name},` : '\n\nBonjour,'} votre inscription est bien enregistrée. Vous recevrez bientôt nos actualités.`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Confirmation WhatsApp newsletter non envoyée à ${phone} : ${(error as Error)?.message || error}`,
+      );
+    }
   }
 
   async exportExcel(): Promise<Buffer> {

@@ -10,6 +10,7 @@ import { CreateContactMessageDto } from './dto/create-contact-message.dto';
 import { UpdateContactMessageDto } from './dto/update-contact-message.dto';
 import { Admin, AdminDocument } from '../auth/schemas/admin.schema';
 import { MailService } from '../mail/mail.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import {
   contactNotificationTemplate,
   contactConfirmationTemplate,
@@ -33,6 +34,7 @@ export class ContactService {
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
     private readonly siteService: SiteService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   async create(dto: CreateContactMessageDto): Promise<ContactMessage> {
@@ -85,7 +87,47 @@ export class ContactService {
       }),
     });
 
+    // 3) WhatsApp (best effort) : notification aux admins + accusé au visiteur.
+    const siteOrg = siteConfig.orgName?.trim() || 'Organisation';
+    const messageForAdmin = [
+      `🆕 Nouveau message de contact — ${siteOrg}`,
+      dto.name ? `\nDe : ${dto.name}` : '',
+      dto.email ? `\nE-mail : ${dto.email}` : '',
+      dto.phone ? `\nTél : ${dto.phone}` : '',
+      `\n\nSujet : ${dto.subject}`,
+      `\n\n${dto.message}`,
+    ].join('');
+    await this.notifyAdminsWhatsapp(messageForAdmin);
+
+    const visitorPhone = (dto.phone ?? '').trim();
+    if (visitorPhone) {
+      await this.sendWhatsapp(
+        visitorPhone,
+        `✅ ${siteOrg} — Nous avons bien reçu votre message.\n\nMerci ${dto.name || 'à vous'}, nous reviendrons vers vous dès que possible au sujet : ${dto.subject}.`,
+      );
+    }
+
     return message;
+  }
+
+  /** Notifie les admins WhatsApp (règle harmonisée) par WhatsApp. */
+  private async notifyAdminsWhatsapp(message: string): Promise<void> {
+    const phones = await this.whatsappService.getEnabledAdminPhones();
+    for (const phone of phones) {
+      await this.sendWhatsapp(phone, message);
+    }
+  }
+
+  private async sendWhatsapp(phone: string, message: string): Promise<void> {
+    const clean = (phone ?? '').trim();
+    if (!clean) return;
+    try {
+      await this.whatsappService.sendText(clean, message);
+    } catch (error) {
+      this.logger.warn(
+        `Message WhatsApp contact non envoyé à ${clean} : ${(error as Error)?.message || error}`,
+      );
+    }
   }
 
   /** Détermine les destinataires de la notification : les comptes actifs ayant `notifyContact: true`. */

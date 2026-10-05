@@ -13,6 +13,7 @@ import { RecruitmentsController } from './recruitments.controller';
 import { RecruitmentsService } from './recruitments.service';
 import { MailModule } from '../mail/mail.module';
 import { SiteModule } from '../site/site.module';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SiteModule } from '../site/site.module';
     ]),
     MailModule,
     SiteModule,
+    WhatsappModule,
   ],
   controllers: [RecruitmentsController],
   providers: [RecruitmentsService],

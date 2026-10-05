@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -28,6 +29,7 @@ import {
 } from './dto/create-recruitment-application.dto';
 import { UpdateRecruitmentApplicationStatusDto } from './dto/update-recruitment-application-status.dto';
 import { MailService } from '../mail/mail.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import {
   recruitmentApplicationApprovedTemplate,
   recruitmentApplicationReceivedForAdminTemplate,
@@ -40,7 +42,12 @@ import {
   emailLogoFromSiteConfig,
 } from '../../common/utils/email-social.util';
 
-const DEFAULT_FIELD_KEYS = new Set(['email', 'last_name', 'first_name']);
+const DEFAULT_FIELD_KEYS = new Set([
+  'email',
+  'last_name',
+  'first_name',
+  'phone',
+]);
 
 const ALLOWED_DOCUMENT_EXTENSIONS = [
   'pdf',
@@ -84,6 +91,8 @@ function escapeRegExp(value: string): string {
 
 @Injectable()
 export class RecruitmentsService {
+  private readonly logger = new Logger(RecruitmentsService.name);
+
   constructor(
     @InjectModel(RecruitmentCampaign.name)
     private readonly campaignModel: Model<RecruitmentCampaignDocument>,
@@ -93,6 +102,7 @@ export class RecruitmentsService {
     private readonly adminModel: Model<AdminDocument>,
     private readonly mailService: MailService,
     private readonly siteService: SiteService,
+    private readonly whatsappService: WhatsappService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -572,7 +582,7 @@ export class RecruitmentsService {
       );
     }
 
-    const requiredDefaults = ['email', 'last_name', 'first_name'];
+    const requiredDefaults = ['email', 'last_name', 'first_name', 'phone'];
     const byKey = new Map(normalized.map((field) => [field.key, field]));
 
     for (const key of requiredDefaults) {
@@ -602,6 +612,12 @@ export class RecruitmentsService {
     if (byKey.get('first_name')?.type !== 'text') {
       throw new BadRequestException(
         'Le champ « first_name » doit être de type texte.',
+      );
+    }
+
+    if (byKey.get('phone')?.type !== 'tel') {
+      throw new BadRequestException(
+        'Le champ « phone » doit être de type téléphone (tel).',
       );
     }
 
@@ -906,6 +922,63 @@ export class RecruitmentsService {
           branding,
         }),
       });
+    }
+
+    // WhatsApp (best effort) : notification aux admins + accusé au candidat.
+    const candidateName = `${application.firstName} ${application.lastName}`.trim();
+    const adminMsg = [
+      `🆕 Nouvelle candidature — ${campaign.title}`,
+      candidateName ? `\n\nDe : ${candidateName}` : '',
+      `\nE-mail : ${application.email}`,
+    ].join('');
+    await this.notifyRecruitmentAdminsWhatsapp(adminMsg);
+
+    const applicantPhone = this.extractPhoneFromFields(application.fields);
+    if (applicantPhone) {
+      await this.sendWhatsapp(
+        applicantPhone,
+        `✅ Candidature reçue — ${campaign.title}\n\nBonjour ${application.firstName || 'à vous'}, votre candidature a bien été enregistrée. Nous vous recontacterons.`,
+      );
+    }
+  }
+
+  private async notifyRecruitmentAdminsWhatsapp(message: string): Promise<void> {
+    const phones = await this.whatsappService.getEnabledAdminPhones();
+    for (const phone of phones) {
+      await this.sendWhatsapp(phone, message);
+    }
+  }
+
+  /** Tente d'extraire un numéro de téléphone depuis les champs du formulaire. */
+  private extractPhoneFromFields(
+    fields: Array<{ key?: string; label?: string; value?: string }>,
+  ): string {
+    for (const field of fields ?? []) {
+      const key = (field.key || '').toLowerCase();
+      const label = (field.label || '').toLowerCase();
+      const value = (field.value || '').trim();
+      const phoneLike =
+        key.includes('phone') ||
+        key.includes('tel') ||
+        label.includes('téléphone') ||
+        label.includes('telephone') ||
+        label === 'tel';
+      if (value && phoneLike) {
+        return value;
+      }
+    }
+    return '';
+  }
+
+  private async sendWhatsapp(phone: string, message: string): Promise<void> {
+    const clean = (phone ?? '').trim();
+    if (!clean) return;
+    try {
+      await this.whatsappService.sendText(clean, message);
+    } catch (error) {
+      this.logger.warn(
+        `Message WhatsApp recrutement non envoyé à ${clean} : ${(error as Error)?.message || error}`,
+      );
     }
   }
 

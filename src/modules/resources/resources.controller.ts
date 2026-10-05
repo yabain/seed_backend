@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -19,10 +20,16 @@ import { randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { ResourcesService } from './resources.service';
+import { SiteService } from '../site/site.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateResourceDto } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
 import { Public } from '../../common/decorators/public.decorator';
+import {
+  normalizeMediaUrl,
+  renderOgpPage,
+  resolveOgpFrontendBase,
+} from '../../common/utils/ogp.util';
 import { resolveUploadDir } from '../../common/utils/upload-dir.util';
 import { deleteUploadFile } from '../../common/utils/upload-file.util';
 
@@ -61,6 +68,7 @@ export class ResourcesController {
   constructor(
     private readonly resourcesService: ResourcesService,
     private readonly configService: ConfigService,
+    private readonly siteService: SiteService,
   ) {}
 
   // ---------- Espace public ----------
@@ -97,6 +105,38 @@ export class ResourcesController {
           ? query.isPublished === 'true'
           : undefined,
     });
+  }
+
+  /** Page Open Graph servie aux robots sociaux pour `/resources/:id`. */
+  @Public()
+  @Get('ogp/:id')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  async renderOgp(@Param('id') id: string, @Req() req: Request) {
+    const item = await this.resourcesService.findOnePublic(id);
+    const ref = String((item as unknown as Record<string, unknown>)._id);
+    const front = resolveOgpFrontendBase(
+      req.query?.host as string | undefined,
+      this.configService,
+    );
+    const url = `${front}/resources/${encodeURIComponent(ref)}`;
+    const mediaOrigin =
+      this.configService.get<string>('PUBLIC_URL') ||
+      `${req.protocol}://${req.get('host')}`;
+    const siteConfig = await this.siteService.getPublicConfig();
+    return renderOgpPage({
+      title: item.title,
+      description: item.description,
+      image: normalizeMediaUrl(item.previewImage, mediaOrigin),
+      url,
+      favicon: normalizeMediaUrl(siteConfig.favicon, mediaOrigin),
+    });
+  }
+
+  /** Ressource publique (publiée, non archivée) — pour la page de détail. */
+  @Public()
+  @Get('public/:id')
+  findOnePublic(@Param('id') id: string) {
+    return this.resourcesService.findOnePublic(id);
   }
 
   @Get(':id')
