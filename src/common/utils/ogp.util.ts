@@ -1,5 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 
+export { resolveOgpFrontendBase } from './frontend-url.util';
+
 /**
  * Utilitaires de génération de pages HTML statiques Open Graph (OGP)
  * destinées aux robots sociaux (WhatsApp, Facebook, Twitter, LinkedIn).
@@ -57,12 +59,14 @@ export interface OgpPageOptions {
   description?: string | null;
   image?: string | null;
   url: string;
+  favicon?: string | null;
 }
 
 export function renderOgpPage(opts: OgpPageOptions): string {
   const title = opts.title?.trim() || 'Contenu';
   const description = toSnippet(opts.description || '');
   const image = opts.image || '';
+  const favicon = opts.favicon || '';
   const imageTags = image
     ? [
         `<meta property="og:image" content="${escapeHtml(image)}" />`,
@@ -73,13 +77,16 @@ export function renderOgpPage(opts: OgpPageOptions): string {
   const twitterImage = image
     ? `\n  <meta name="twitter:image" content="${escapeHtml(image)}" />`
     : '';
+  const faviconTag = favicon
+    ? `<link rel="icon" type="image/x-icon" href="${escapeHtml(favicon)}" />\n    `
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(title)}</title>
+    ${faviconTag}<title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}" />
     <link rel="canonical" href="${escapeHtml(opts.url)}" />
     <meta property="og:type" content="website" />

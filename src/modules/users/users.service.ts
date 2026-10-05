@@ -364,7 +364,7 @@ export class UsersService {
     }
   }
 
-  async create(dto: CreateUserDto, actor?: UserActor) {
+  async create(dto: CreateUserDto, actor?: UserActor, origin?: string) {
     if (dto.role === 'superadmin') {
       this.requireSuperadmin(actor, 'créer un compte super administrateur');
     }
@@ -421,6 +421,7 @@ export class UsersService {
         dto.password,
         dto.role ?? 'user',
         dto.siteUrl,
+        origin,
       );
     }
 
@@ -432,13 +433,11 @@ export class UsersService {
     password: string,
     role: UserRole,
     siteUrl?: string,
+    origin?: string,
   ): Promise<void> {
     try {
       const siteConfig = await this.siteService.getPublicConfig();
-      const frontUrl =
-        (siteUrl ?? '').trim().replace(/\/$/, '') ||
-        this.configService.get<string>('FRONT_URL') ||
-        'http://localhost:4200';
+      const frontUrl = this.buildFrontUrl(siteUrl, origin);
       const sent = await this.mailService.send({
         to: admin.email,
         subject: `Votre compte ${siteConfig.orgName || 'Organisation'} — identifiants de connexion`,
@@ -476,10 +475,7 @@ export class UsersService {
       try {
         const siteConfig = await this.siteService.getPublicConfig();
         const orgName = siteConfig.orgName?.trim() || 'Organisation';
-        const frontUrl =
-          (siteUrl ?? '').trim().replace(/\/$/, '') ||
-          this.configService.get<string>('FRONT_URL') ||
-          'http://localhost:4200';
+        const frontUrl = this.buildFrontUrl(siteUrl, origin);
         await this.whatsappService.sendText(
           admin.phone,
           `🆕 ${orgName} — Vos identifiants de connexion\n\nBonjour ${admin.name},\n\nVotre compte a été créé. Voici vos identifiants pour vous connecter :\n\nE-mail : ${admin.email}\nMot de passe : ${password}\n\nConnectez-vous ici : ${frontUrl}/admin/login\n\nPour des raisons de sécurité, pensez à changer ce mot de passe lors de votre première connexion.`,
@@ -490,6 +486,17 @@ export class UsersService {
         );
       }
     }
+  }
+
+  /** Base d'URL du front-office pour les identifiants (siteUrl > origine > config). */
+  private buildFrontUrl(siteUrl?: string, origin?: string): string {
+    const explicitSite =
+      (siteUrl ?? '').trim().replace(/\/$/, '') ||
+      (origin && /^https?:\/\//i.test(origin)
+        ? origin.trim().replace(/\/+$/, '')
+        : '') ||
+      this.configService.get<string>('FRONT_URL');
+    return (explicitSite || 'http://localhost:4200').replace(/\/+$/, '');
   }
 
   async update(id: string, dto: UpdateUserDto, actor?: UserActor) {

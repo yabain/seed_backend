@@ -13,14 +13,15 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { EventsService } from './events.service';
+import { SiteService } from '../site/site.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import {
-  buildFrontendUrl,
   normalizeMediaUrl,
   renderOgpPage,
+  resolveOgpFrontendBase,
 } from '../../common/utils/ogp.util';
 
 @Controller('events')
@@ -28,6 +29,7 @@ export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
     private readonly configService: ConfigService,
+    private readonly siteService: SiteService,
   ) {}
 
   @Public()
@@ -57,15 +59,21 @@ export class EventsController {
   async renderOgp(@Param('id') id: string, @Req() req: Request) {
     const item = await this.eventsService.findOne(id);
     const ref = String((item as unknown as Record<string, unknown>)._id);
-    const url = `${buildFrontendUrl(this.configService)}/events/${encodeURIComponent(ref)}`;
+    const front = resolveOgpFrontendBase(
+      req.query?.host as string | undefined,
+      this.configService,
+    );
+    const url = `${front}/events/${encodeURIComponent(ref)}`;
     const mediaOrigin =
       this.configService.get<string>('PUBLIC_URL') ||
       `${req.protocol}://${req.get('host')}`;
+    const siteConfig = await this.siteService.getPublicConfig();
     return renderOgpPage({
       title: item.title,
       description: item.description,
       image: normalizeMediaUrl(item.image, mediaOrigin),
       url,
+      favicon: normalizeMediaUrl(siteConfig.favicon, mediaOrigin),
     });
   }
 

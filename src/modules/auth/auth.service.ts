@@ -30,6 +30,8 @@ import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { SiteService } from '../site/site.service';
+import { resolveFrontendBase } from '../../common/utils/frontend-url.util';
+
 import {
   emailSocialFromSiteConfig,
   emailLogoFromSiteConfig,
@@ -840,22 +842,50 @@ export class AuthService {
       .exec();
   }
 
-  private buildFrontendUrl(): string {
-    const explicit = this.configService.get<string>('FRONTEND_URL');
-    if (explicit) {
-      return explicit.replace(/\/+$/, '');
+  private buildFrontendUrl(origin?: string): string {
+    return resolveFrontendBase(origin, this.configService);
+  }
+
+  /**
+   * Valide un jeton de réinitialisation (existe, inutilisé, non expiré,
+   * compte toujours actif) sans le consommer.
+   */
+  async validateResetToken(token: string) {
+    if (!token) {
+      return { valid: false, message: 'Jeton de réinitialisation manquant.' };
     }
-    const clientOrigin = this.configService
-      .get<string>('CLIENT_ORIGIN')
-      ?.split(',')[0]
-      ?.trim();
-    return (clientOrigin || 'http://localhost:4200').replace(/\/+$/, '');
+    const tokenHash = this.hashToken(token);
+    const record = await this.passwordResetTokenModel
+      .findOne({
+        tokenHash,
+        used: false,
+        expiresAt: { $gt: new Date() },
+      })
+      .exec();
+
+    if (!record) {
+      return {
+        valid: false,
+        message: 'Ce lien est invalide ou a expiré. Recommencez la demande.',
+      };
+    }
+
+    const admin = await this.adminModel.findById(record.adminId).exec();
+    if (!admin || !admin.isActive) {
+      return {
+        valid: false,
+        message: 'Ce compte est introuvable ou désactivé.',
+      };
+    }
+
+    return { valid: true };
   }
 
   async forgotPassword(
     forgotPasswordDto: ForgotPasswordDto,
     ip?: string,
     userAgent?: string,
+    origin?: string,
   ) {
     const genericResponse = {
       success: true,
@@ -892,7 +922,7 @@ export class AuthService {
       expiresAt,
     });
 
-    const resetUrl = `${this.buildFrontendUrl()}/admin/reset-password?token=${token}`;
+    const resetUrl = `${this.buildFrontendUrl(origin)}/admin/reset-password?token=${token}`;
 
     const siteConfig = await this.siteService.getPublicConfig();
     const orgName = siteConfig.orgName?.trim() || 'Organisation';

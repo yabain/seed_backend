@@ -13,14 +13,15 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { NewsService } from './news.service';
+import { SiteService } from '../site/site.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import {
-  buildFrontendUrl,
   normalizeMediaUrl,
   renderOgpPage,
+  resolveOgpFrontendBase,
 } from '../../common/utils/ogp.util';
 
 @Controller('news')
@@ -28,6 +29,7 @@ export class NewsController {
   constructor(
     private readonly newsService: NewsService,
     private readonly configService: ConfigService,
+    private readonly siteService: SiteService,
   ) {}
 
   // ---------- Espace public ----------
@@ -64,15 +66,21 @@ export class NewsController {
   async renderOgp(@Param('slug') slug: string, @Req() req: Request) {
     const item = await this.newsService.findOneBySlug(slug);
     const id = item.slug || String((item as unknown as Record<string, unknown>)._id);
-    const url = `${buildFrontendUrl(this.configService)}/news/${encodeURIComponent(id)}`;
+    const front = resolveOgpFrontendBase(
+      req.query?.host as string | undefined,
+      this.configService,
+    );
+    const url = `${front}/news/${encodeURIComponent(id)}`;
     const mediaOrigin =
       this.configService.get<string>('PUBLIC_URL') ||
       `${req.protocol}://${req.get('host')}`;
+    const siteConfig = await this.siteService.getPublicConfig();
     return renderOgpPage({
       title: item.title,
       description: item.excerpt || item.content,
       image: normalizeMediaUrl(item.image, mediaOrigin),
       url,
+      favicon: normalizeMediaUrl(siteConfig.favicon, mediaOrigin),
     });
   }
 

@@ -20,12 +20,13 @@ import { randomBytes } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { RecruitmentsService } from './recruitments.service';
+import { SiteService } from '../site/site.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import {
-  buildFrontendUrl,
   normalizeMediaUrl,
   renderOgpPage,
+  resolveOgpFrontendBase,
 } from '../../common/utils/ogp.util';
 import { CreateRecruitmentCampaignDto } from './dto/create-recruitment-campaign.dto';
 import { UpdateRecruitmentCampaignDto } from './dto/update-recruitment-campaign.dto';
@@ -85,6 +86,7 @@ export class RecruitmentsController {
   constructor(
     private readonly recruitmentsService: RecruitmentsService,
     private readonly configService: ConfigService,
+    private readonly siteService: SiteService,
   ) {}
 
   @Public()
@@ -155,15 +157,21 @@ export class RecruitmentsController {
   async renderOgp(@Param('id') id: string, @Req() req: Request) {
     const item = await this.recruitmentsService.findPublicCampaignById(id);
     const ref = String((item as unknown as Record<string, unknown>)._id);
-    const url = `${buildFrontendUrl(this.configService)}/recruitments/${encodeURIComponent(ref)}`;
+    const front = resolveOgpFrontendBase(
+      req.query?.host as string | undefined,
+      this.configService,
+    );
+    const url = `${front}/recruitments/${encodeURIComponent(ref)}`;
     const mediaOrigin =
       this.configService.get<string>('PUBLIC_URL') ||
       `${req.protocol}://${req.get('host')}`;
+    const siteConfig = await this.siteService.getPublicConfig();
     return renderOgpPage({
       title: item.title,
       description: item.description || item.contentHtml,
       image: normalizeMediaUrl(item.image, mediaOrigin),
       url,
+      favicon: normalizeMediaUrl(siteConfig.favicon, mediaOrigin),
     });
   }
 

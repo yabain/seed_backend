@@ -136,7 +136,22 @@ export class AuthController {
   ) {
     const ip = req.ip || req.connection?.remoteAddress;
     const userAgent = req.headers?.['user-agent'];
-    return this.authService.forgotPassword(forgotPasswordDto, ip, userAgent);
+    // L'URL de réinitialisation doit pointer vers le front-office d'où provient
+    // la demande (ex. udm.cm), pas vers un domaine configuré obsolète.
+    const origin = String(req.headers?.['origin'] || '').trim() || undefined;
+    return this.authService.forgotPassword(
+      forgotPasswordDto,
+      ip,
+      userAgent,
+      origin,
+    );
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('reset-password/validate')
+  validateResetToken(@Body() dto: { token?: string }) {
+    return this.authService.validateResetToken(dto.token || '');
   }
 
   @Public()

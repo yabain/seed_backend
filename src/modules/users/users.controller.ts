@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -63,12 +64,18 @@ export class UsersController {
   create(
     @Body() dto: CreateUserDto,
     @CurrentUser() currentUser: AuthenticatedUser,
+    @Req() req: any,
   ) {
-    return this.usersService.create(dto, {
-      id: currentUser.id,
-      email: currentUser.email,
-      role: currentUser.role,
-    });
+    const origin = String(req.headers?.['origin'] || '').trim() || undefined;
+    return this.usersService.create(
+      dto,
+      {
+        id: currentUser.id,
+        email: currentUser.email,
+        role: currentUser.role,
+      },
+      origin,
+    );
   }
 
   @Patch(':id')
