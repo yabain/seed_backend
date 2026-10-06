@@ -84,10 +84,21 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login')
-  login(@Body() loginDto: LoginDto, @Req() req: any) {
+  async login(
+    @Body() loginDto: LoginDto,
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const ip = req.ip || req.connection?.remoteAddress;
     const userAgent = req.headers?.['user-agent'];
-    return this.authService.login(loginDto, ip, userAgent);
+    const result = await this.authService.login(loginDto, ip, userAgent);
+
+    // Si la 2FA est désactivée globalement, `login` émet déjà un token : on pose
+    // alors le cookie de session immédiatement (même flux que google/2fa/verify).
+    if ('accessToken' in result && result.accessToken) {
+      res.cookie(TOKEN_COOKIE_NAME, result.accessToken, COOKIE_OPTIONS);
+    }
+    return result;
   }
 
   @Public()

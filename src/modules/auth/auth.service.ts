@@ -30,6 +30,7 @@ import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { renderEmailLayout, escapeHtml } from '../mail/templates/layout';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { SiteService } from '../site/site.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { resolveFrontendBase, whatsappNotificationFooter } from '../../common/utils/frontend-url.util';
 
 import {
@@ -77,6 +78,7 @@ export class AuthService {
     private readonly auditLogService: AuditLogService,
     private readonly siteService: SiteService,
     private readonly whatsappService: WhatsappService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   private async emailBranding(orgName?: string) {
@@ -380,6 +382,39 @@ export class AuthService {
       lockoutUntil: null,
     });
 
+    // 2FA globale : si désactivée en paramètres, on connecte directement
+    // (émission du JWT) sans demander de code à 6 chiffres.
+    const authConfig =
+      await this.platformSettingsService.getAuthConfigWithKeyFromDb();
+    if (!authConfig.twoFactorEnabled) {
+      const payload = {
+        sub: admin._id.toString(),
+        email: admin.email,
+        role: admin.role,
+      };
+      const accessToken = await this.jwtService.signAsync(payload);
+
+      await this.auditLogService.record({
+        actorId: String(admin._id),
+        actorEmail: admin.email,
+        actorRole: admin.role,
+        action: 'auth.login',
+        resourceType: 'admin',
+        resourceId: String(admin._id),
+        resourceLabel: admin.email,
+        method: 'POST',
+        path: '/admin/auth/login',
+        statusCode: 200,
+        ip,
+        userAgent,
+      });
+
+      return {
+        accessToken,
+        admin: this.buildAdminPublic(admin),
+      };
+    }
+
     const codeSent = await this.issueLoginTwoFactorChallenge(admin);
 
     await this.auditLogService.record({
@@ -582,13 +617,28 @@ export class AuthService {
 
     return {
       accessToken: await this.jwtService.signAsync(payload),
-      admin: {
-        id: admin._id.toString(),
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-        avatar: admin.avatar || undefined,
-      },
+      admin: this.buildAdminPublic(admin),
+    };
+  }
+
+  /** Forme publique de l'admin retournée au front après authentification. */
+  private buildAdminPublic(admin: AdminDocument): {
+    id: string;
+    name: string;
+    firstName?: string;
+    lastName?: string;
+    email: string;
+    role: string;
+    avatar?: string;
+  } {
+    return {
+      id: admin._id.toString(),
+      name: admin.name,
+      firstName: admin.firstName,
+      lastName: admin.lastName,
+      email: admin.email,
+      role: admin.role,
+      avatar: admin.avatar || undefined,
     };
   }
 
@@ -607,6 +657,25 @@ export class AuthService {
     ip?: string,
     userAgent?: string,
   ): Promise<{ accessToken: string; admin: object }> {
+    // Bouton Google globalement désactivé → blocage de la route.
+    const authConfig =
+      await this.platformSettingsService.getAuthConfigWithKeyFromDb();
+    if (!authConfig.googleLoginEnabled) {
+      await this.auditLogService.record({
+        action: 'auth.login_failed',
+        resourceType: 'admin',
+        metadata: { reason: 'google_login_disabled', ip },
+        method: 'POST',
+        path: '/admin/auth/google',
+        statusCode: 403,
+        ip,
+        userAgent,
+      });
+      throw new UnauthorizedException(
+        'La connexion avec Google est désactivée.',
+      );
+    }
+
     const googleUser = await this.verifyGoogleIdToken(dto.idToken);
     const email = (googleUser.email ?? '').toLowerCase().trim();
     if (!email) {
@@ -682,15 +751,7 @@ export class AuthService {
 
     return {
       accessToken: await this.jwtService.signAsync(payload),
-      admin: {
-        id: admin._id.toString(),
-        name: admin.name,
-        firstName: admin.firstName,
-        lastName: admin.lastName,
-        email: admin.email,
-        role: admin.role,
-        avatar: admin.avatar || undefined,
-      },
+      admin: this.buildAdminPublic(admin),
     };
   }
 
@@ -700,7 +761,13 @@ export class AuthService {
    * connexion frontend Google Identity Services.
    */
   private async verifyGoogleIdToken(idToken: string): Promise<GoogleTokenInfo> {
-    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    // GOOGLE_CLIENT_ID : source prioritaire = base (déchiffrée), repli env.
+    const authConfig =
+      await this.platformSettingsService.getAuthConfigWithKeyFromDb();
+    const googleClientId =
+      authConfig.googleClientId ||
+      this.configService.get<string>('GOOGLE_CLIENT_ID');
+
     if (!googleClientId) {
       throw new UnauthorizedException(
         'La connexion avec Google n’est pas configurée.',

@@ -18,10 +18,12 @@ import {
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { SiteModule } from '../site/site.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 
 @Module({
   imports: [
     SiteModule,
+    PlatformSettingsModule,
     MongooseModule.forFeature([
       { name: Admin.name, schema: AdminSchema },
       { name: TwoFactorCode.name, schema: TwoFactorCodeSchema },
