@@ -41,6 +41,7 @@ import { RecruitmentsModule } from './modules/recruitments/recruitments.module';
 import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 import { TranslationModule } from './modules/translation/translation.module';
+import { BackupModule } from './modules/backup/backup.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -88,6 +89,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     PlatformSettingsModule,
     WhatsappModule,
     TranslationModule,
+    BackupModule,
     SeedModule,
   ],
   controllers: [AppController],
