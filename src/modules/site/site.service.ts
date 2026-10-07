@@ -6,6 +6,7 @@ import {
   SiteConfig,
   SiteConfigDocument,
   HoverMenu,
+  OriziaSiteConfig,
 } from './schemas/site-config.schema';
 import {
   HOVER_MENU_MAX_ITEMS,
@@ -165,6 +166,18 @@ const DEFAULT_CONFIG = {
   },
 };
 
+/** Paramètres Orizia exposés à l'admin (nom de l'assistant inclus). */
+export interface OriziaAdminSettings {
+  enabled: boolean;
+  visible: boolean;
+  logo: string;
+  welcomeImage: string;
+  openRouterApiKey: string;
+  name: string;
+  temperature: number;
+  reasoningLevel: 'low' | 'medium' | 'high';
+}
+
 @Injectable()
 export class SiteService {
   constructor(
@@ -252,13 +265,18 @@ export class SiteService {
 
   async getPublicConfig(): Promise<SiteConfig> {
     const config = await this.getOrCreate();
+    type PublicOrizia = OriziaSiteConfig & { name?: string };
     const plain = config.toObject() as SiteConfig & {
-      orizia?: { openRouterApiKey?: string };
+      orizia?: OriziaSiteConfig | PublicOrizia;
     };
     if (plain.orizia) {
       plain.orizia.openRouterApiKey = '';
       plain.orizia.logo = this.resolveMediaUrl(plain.orizia.logo);
       plain.orizia.welcomeImage = this.resolveMediaUrl(plain.orizia.welcomeImage);
+      // Nom de l'assistant : source de vérité = variable d'environnement AI_NAME.
+      (plain.orizia as PublicOrizia).name = (
+        this.configService.get<string>('AI_NAME') || 'AEDIA'
+      ).trim();
     }
     return plain;
   }
@@ -465,15 +483,7 @@ export class SiteService {
     } as unknown as UpdateSiteConfigDto);
   }
 
-  async getOriziaSettingsForAdmin(): Promise<{
-    enabled: boolean;
-    visible: boolean;
-    logo: string;
-    welcomeImage: string;
-    openRouterApiKey: string;
-    temperature: number;
-    reasoningLevel: 'low' | 'medium' | 'high';
-  }> {
+  async getOriziaSettingsForAdmin(): Promise<OriziaAdminSettings> {
     const config = await this.getOrCreate();
     const orizia =
       (config.get('orizia') as {
@@ -501,6 +511,7 @@ export class SiteService {
       logo: this.resolveMediaUrl(orizia.logo),
       welcomeImage: this.resolveMediaUrl(orizia.welcomeImage),
       openRouterApiKey: apiKey,
+      name: (this.configService.get<string>('AI_NAME') || 'AEDIA').trim(),
       temperature:
         typeof orizia.temperature === 'number' && Number.isFinite(orizia.temperature)
           ? Math.max(0, Math.min(2, Number(orizia.temperature.toFixed(2))))

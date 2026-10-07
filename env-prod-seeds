@@ -204,3 +204,6 @@ ORIZIA_APP_TITLE=SEEDS.AI
 # URL publique du site, utilisée pour construire les liens proposés par Orizia.
 # Laissez vide pour retomber sur SITE_URL ou CLIENT_ORIGIN.
 ORIZIA_SITE_URL=
+
+# Nom public de l'assistant IA (source de vérité, exposé au front)
+AI_NAME=AEDIA

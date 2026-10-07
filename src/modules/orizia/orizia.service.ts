@@ -17,7 +17,7 @@ import { AskOriziaDto } from './dto/ask-orizia.dto';
 import { OriziaContextBuilder } from './prompts/context.builder';
 import { OriziaContextLoader } from './prompts/context-resources.loader';
 import { ORIZIA_ROUTES_RESOURCE } from './prompts/routes.prompt';
-import { ORIZIA_BASE_PROMPT } from './prompts/system.prompt';
+import { buildSystemPrompt } from './prompts/system.prompt';
 import { searchWeb } from './tools/web-search.tool';
 import { DbSearchTool } from './tools/db-search.tool';
 import { SiteService } from '../site/site.service';
@@ -215,6 +215,11 @@ export class OriziaService implements OnModuleInit, OnApplicationBootstrap {
 
   private get enabled(): boolean {
     return this.runtimeOrizia.enabled;
+  }
+
+  /** Nom de l'assistant (source de vérité : variable d'environnement `AI_NAME`). */
+  private get aiName(): string {
+    return (this.config.get<string>('AI_NAME') || 'AEDIA').trim();
   }
 
   /** Clé d'API OpenRouter (commence par `sk-or-v1-`). */
@@ -755,7 +760,7 @@ export class OriziaService implements OnModuleInit, OnApplicationBootstrap {
       ? `\n--- ROUTES DU SITE ---\n${this.routesResource}\n--- FIN DES ROUTES ---`
       : '';
 
-    const content = `${ORIZIA_BASE_PROMPT}
+    const content = `${buildSystemPrompt(this.aiName)}
 
 URL de base du site (à utiliser pour construire les liens Markdown) : ${this.siteUrl}
 
