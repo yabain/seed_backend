@@ -4,7 +4,7 @@ import { Connection } from 'mongoose';
 import { ZipArchive } from 'archiver';
 import { createReadStream, existsSync, statSync } from 'fs';
 import { readdir } from 'fs/promises';
-import { join } from 'path';
+import { join, isAbsolute, resolve } from 'path';
 import { resolveUploadDir } from '../../common/utils/upload-dir.util';
 
 type ZipArchiveInstance = InstanceType<typeof ZipArchive>;
@@ -30,7 +30,7 @@ export interface BackupFile {
 
 const DATABASE_DIR = 'database';
 const UPLOADS_DIR = 'uploads';
-const CONTEXT_DIR = 'context_udm';
+const CONTEXT_DIR = 'context_ai';
 
 @Injectable()
 export class BackupService {
@@ -78,7 +78,7 @@ export class BackupService {
       await this.appendDirectory(archive, uploadRoot, UPLOADS_DIR);
     }
 
-    // ── 3. Contexte Orizia (context_udm) ────────────────────────────────────
+    // ── 3. Contexte Orizia (context_ai) ────────────────────────────────────
     const contextRoot = this.resolveContextDir();
     if (existsSync(contextRoot)) {
       await this.appendDirectory(archive, contextRoot, CONTEXT_DIR);
@@ -147,11 +147,13 @@ export class BackupService {
     return entries;
   }
 
-  /** Résout le répertoire de contexte d'Orizia (défaut `{cwd}/context_udm`). */
+  /** Résout le répertoire de contexte d'Orizia (défaut `{cwd}/context_ai`). */
   private resolveContextDir(): string {
     const configured =
-      process.env.ORIZIA_CONTEXT_DIR?.replace(/^\.\//, '') || 'context_udm';
-    return join(process.cwd(), configured);
+      process.env.ORIZIA_CONTEXT_DIR?.replace(/^\.\//, '') || 'context_ai';
+    return isAbsolute(configured)
+      ? configured
+      : resolve(process.cwd(), configured);
   }
 
   /** Nom de fichier horodaté : YYYY-MM-DD_HH-mm. */

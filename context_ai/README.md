@@ -5,7 +5,7 @@ injecté dans son contexte à chaque question : c'est ce qui limite drastiquemen
 hallucinations.
 
 > Le chemin de ce répertoire est configurable : voir la variable d'environnement
-> `ORIZIA_CONTEXT_DIR` (par défaut `./context_udm`) dans le fichier `.env` du backend.
+> `ORIZIA_CONTEXT_DIR` (par défaut `./context_ai`) dans le fichier `.env` du backend.
 
 ## Fichiers fournis
 

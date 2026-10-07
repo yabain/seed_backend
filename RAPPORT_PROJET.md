@@ -130,7 +130,7 @@ AEDIA est un chatbot IA génératif public intégré à la plateforme (widget fl
 
 1. **`POST /orizia/ask`** (SSE, `@Public()`, `OptionalJwtAuthGuard`) — envoi de la conversation + historique, réponse en streaming `Content-Type: text/event-stream`.
 2. **`OriziaContextBuilder`** — contexte dynamique (contenu publié : actualités, programmes, ressources, événements, partenaires, équipe, à-propos, site config), texte limité (500 car., total 24 000 car.), cache 60 s.
-3. **`OriziaContextLoader`** — charge les fichiers de contexte métier (`context_udm/` : markdown, tableurs, docx ; `ORIZIA_CONTEXT_DIR` défaut `./context_udm`) au démarrage, re-vérification toutes les 30 s, suivi `loadedFiles/skippedFiles`.
+3. **`OriziaContextLoader`** — charge les fichiers de contexte métier (`context_ai/` : markdown, tableurs, docx ; `ORIZIA_CONTEXT_DIR` défaut `./context_ai`) au démarrage, re-vérification toutes les 30 s, suivi `loadedFiles/skippedFiles`.
 4. **`web-search.tool`** — recherche web DuckDuckGo (gratuite, sans clé), timeout 8 s, max 10 résultats, décodage entités HTML.
 5. **`db-search.tool`** — recherche dans les collections **publiques uniquement** (news, programs, resources, events, partners, team, about, site) — exclusion explicite des prospects/candidatures/admins.
 6. **`OriziaService`** — orchestration : 10 messages de contexte par défaut, historique max 50, recherche web plafonnée par fenêtre glissante, sélection du modèle OpenRouter.
@@ -140,7 +140,7 @@ AEDIA est un chatbot IA génératif public intégré à la plateforme (widget fl
 - **Fournisseur** : OpenRouter (`https://openrouter.ai/api/v1`), jusqu'à 5 modèles (`ORIZIA_MODELS`, surchargeables), variantes `:free` (coût zéro, contexte 262k+, température/outils/raisonnement).
 - **Paramètres** : température (défaut 0.7), niveau de raisonnement (`reasoningLevel`), clé API chiffrée en base (`openRouterApiKey`), configuration via `/orizia/settings` (admin).
 - **Prompt système** (`system.prompt.ts`) : identité « AEDIA, l'intelligence artificielle des sommets », blocs de contexte (institutionnel, dynamique, routes), deux outils (`recherche_web`, `recherche_base`).
-- **Contenu métier** dans `context_udm/` (ex. `00_identite_orizia.md`, `10_universite_des_montagnes.md`) : **éditable en production sans redéploiement**.
+- **Contenu métier** dans `context_ai/` (ex. `00_identite_orizia.md`, `10_universite_des_montagnes.md`) : **éditable en production sans redéploiement**.
 - **Confidentialité** : le module n'enregistre que des modèles publics (commentaire explicite dans `orizia.module.ts`).
 - **Conversations** : historique persistant par visiteur (`GET /orizia/visitor/:visitorId`, identifiant `udm-…` généré côté front), accès admin aux conversations (`/orizia/conversations`, `/orizia/conversation/:id`).
 
@@ -243,13 +243,13 @@ Panneau d'administration complet : login (Google + mot de passe + 2FA), mot de p
 | `env_seeds.ts` | `https://seeds-backend.yaba-in.com/api` | `https://seeds.yaba-in.com` | 569864… | Prod SEED |
 | `env_asfh.ts` | `https://backend.asfh.cm/api` | `https://asfh.cm` | 746500… | Prod ASFH |
 
-`environment.ts` / `environment.production.ts` embarquent aussi la configuration AEDIA (`orizia.enabled`, `contextRoute: '/context_udm'`, `suggestions`).
+`environment.ts` / `environment.production.ts` embarquent aussi la configuration AEDIA (`orizia.enabled`, `contextRoute: '/context_ai'`, `suggestions`).
 
 ---
 
 ## 6. Variables d'environnement importantes (backend)
 
-`MONGODB_URI`, `MONGODB_DB` (défaut `seed`), `JWT_SECRET`/`JWT_*`, `PORT` (défaut 3000), `CLIENT_ORIGIN`, `PUBLIC_URL`, `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`/`SMTP_PASSWORD`/`SMTP_PORT`/`SMTP_SECURE`, `CONTACT_RECIPIENT_EMAIL`, `ORIZIA_CONTEXT_DIR` (défaut `./context_udm`), `ORIZIA_MODELS`, `SEED_DISABLED`, `API_PREFIX` (défaut `api`), `GOOGLE_*`.
+`MONGODB_URI`, `MONGODB_DB` (défaut `seed`), `JWT_SECRET`/`JWT_*`, `PORT` (défaut 3000), `CLIENT_ORIGIN`, `PUBLIC_URL`, `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`/`SMTP_PASSWORD`/`SMTP_PORT`/`SMTP_SECURE`, `CONTACT_RECIPIENT_EMAIL`, `ORIZIA_CONTEXT_DIR` (défaut `./context_ai`), `ORIZIA_MODELS`, `SEED_DISABLED`, `API_PREFIX` (défaut `api`), `GOOGLE_*`.
 
 ---
 
@@ -265,6 +265,6 @@ Panneau d'administration complet : login (Google + mot de passe + 2FA), mot de p
 
 ## 8. État actuel & points d'attention
 
-- **AEDIA multi-cibles** : le contenu de contexte à jour concerne l'UDM (`context_udm`), la plateforme cible actuelle.
+- **AEDIA multi-cibles** : le contenu de contexte à jour concerne l'UDM (`context_ai`), la plateforme cible actuelle.
 - **Déploiement** : plusieurs variantes (SEED sur `seeds.yaba-in.com`, ASFH sur `asfh.cm`, UDM en préparation avec `seeds-backend.yaba-in.com` comme API). La sélection de variante se fait au build (`fileReplacements` + `index.html`).
 - **Rappel opérationnel** : toute modification front doit être **rebuildée et redéployée** pour être visible en production.

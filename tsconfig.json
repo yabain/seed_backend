@@ -22,5 +22,5 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   },
-  "exclude": ["node_modules", "dist", "context_udm"]
+  "exclude": ["node_modules", "dist", "context_ai"]
 }

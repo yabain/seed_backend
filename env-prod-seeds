@@ -164,7 +164,7 @@ ORIZIA_REASONING_EFFORT=low
 ORIZIA_MAX_TOKENS=
 
 # Répertoire des documents de contexte (identité, règles, données publiques UdM).
-ORIZIA_CONTEXT_DIR=./context_udm
+ORIZIA_CONTEXT_DIR=./context_ai
 # Budget maximal du contexte documentaire (caractères).
 ORIZIA_CONTEXT_MAX_CHARS=120000
 ORIZIA_CONTEXT_MAX_CHARS_PER_FILE=40000

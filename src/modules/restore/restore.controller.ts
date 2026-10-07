@@ -16,9 +16,8 @@ import { diskStorage } from 'multer';
 import { randomUUID } from 'crypto';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
-import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { SuperAdminGuard } from '../../common/guards/super-admin.guard';
 import { RestoreService } from './restore.service';
 import type { RestoreJob } from './restore.service';
 
@@ -39,8 +38,7 @@ function tempDir(): string {
   return dir;
 }
 
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'superadmin')
+@UseGuards(JwtAuthGuard, SuperAdminGuard)
 @Controller('restore')
 export class RestoreController {
   constructor(private readonly restoreService: RestoreService) {}

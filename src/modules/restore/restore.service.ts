@@ -4,7 +4,7 @@ import { Connection } from 'mongoose';
 import AdmZip from 'adm-zip';
 import { existsSync, mkdirSync } from 'fs';
 import { writeFile } from 'fs/promises';
-import { join, normalize, resolve } from 'path';
+import { join, normalize, resolve, isAbsolute } from 'path';
 import { resolveUploadDir } from '../../common/utils/upload-dir.util';
 
 export interface RestoreJob {
@@ -27,7 +27,7 @@ export interface RestoreJob {
 
 const DB_DIR = 'database';
 const UPLOADS_DIR = 'uploads';
-const CONTEXT_DIR = 'context_udm';
+const CONTEXT_DIR = 'context_ai';
 const MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024; // 10 Go
 
 @Injectable()
@@ -305,8 +305,10 @@ export class RestoreService {
 
   private resolveContextDir(): string {
     const configured =
-      process.env.ORIZIA_CONTEXT_DIR?.replace(/^\.\//, '') || 'context_udm';
-    return join(process.cwd(), configured);
+      process.env.ORIZIA_CONTEXT_DIR?.replace(/^\.\//, '') || 'context_ai';
+    return isAbsolute(configured)
+      ? configured
+      : resolve(process.cwd(), configured);
   }
 
   /** Écrit une entrée decompressée sur le disque. */

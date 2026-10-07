@@ -28,7 +28,7 @@ const SUPPORTED = [
 
 /**
  * Charge les fichiers de contexte d'Orizia depuis le répertoire pointé par
- * `ORIZIA_CONTEXT_DIR` (par défaut `./context_udm`).
+ * `ORIZIA_CONTEXT_DIR` (par défaut `./context_ai`).
  *
  * Les fichiers sont lus **une seule fois** au démarrage puis mis en cache : le
  * contexte est stable et ne provoque aucun accès disque par question. Ajouter ou
@@ -51,7 +51,7 @@ export class OriziaContextLoader {
   /** Répertoire absolu des fichiers de contexte. */
   resolveDirectory(): string {
     const configured =
-      this.config.get<string>('ORIZIA_CONTEXT_DIR') || './context_udm';
+      this.config.get<string>('ORIZIA_CONTEXT_DIR') || './context_ai';
     return path.isAbsolute(configured)
       ? configured
       : path.resolve(process.cwd(), configured);

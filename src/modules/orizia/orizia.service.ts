@@ -195,7 +195,7 @@ export class OriziaService implements OnModuleInit, OnApplicationBootstrap {
   ) {}
 
   onModuleInit(): void {
-    // Contexte documentaire (répertoire `context_udm`) : chargé une seule fois.
+    // Contexte documentaire (répertoire `context_ai`) : chargé une seule fois.
     this.contextLoader.load();
 
     void this.refreshRuntimeOriziaConfig().then(() => {

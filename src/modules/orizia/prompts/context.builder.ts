@@ -47,7 +47,7 @@ const CACHE_TTL_MS_DEFAULT = 60_000;
  *
  * ⚠️ GARANTIE DE CONFIDENTIALITÉ — les modèles suivants ne sont **jamais**
  * interrogés ici, et ne doivent jamais l'être sans revue explicite des règles du
- * fichier `context_udm/00_identite_orizia.md` (section 4) :
+ * fichier `context_ai/00_identite_orizia.md` (section 4) :
  *   • ContactMessage        → messages du formulaire de contact (personnels)
  *   • Prospect              → candidats / prospects (personnels)
  *   • Admin / User          → comptes et utilisateurs (identifiants, e-mails)

@@ -1,12 +1,10 @@
 import { Controller, Post, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
-import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { SuperAdminGuard } from '../../common/guards/super-admin.guard';
 import { BackupService } from './backup.service';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'superadmin')
+@UseGuards(JwtAuthGuard, SuperAdminGuard)
 @Controller('backup')
 export class BackupController {
   constructor(private readonly backupService: BackupService) {}

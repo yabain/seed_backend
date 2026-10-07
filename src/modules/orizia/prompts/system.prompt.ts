@@ -4,7 +4,7 @@
  * Le contenu « métier » — identité, périmètre limité à l'Université des
  * Montagnes, règles de confidentialité des données, règles anti-hallucination,
  * ton et style — vit volontairement dans les fichiers du répertoire
- * `context_udm/` (voir `00_identite_orizia.md`). Il est ainsi modifiable par
+ * `context_ai/` (voir `00_identite_orizia.md`). Il est ainsi modifiable par
  * l'administration **sans toucher au code ni redéployer**.
  *
  * Ce prompt ne fait donc qu'assembler et cadrer les blocs, pour éviter toute
