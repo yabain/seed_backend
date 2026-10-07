@@ -42,6 +42,7 @@ import { PlatformSettingsModule } from './modules/platform-settings/platform-set
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 import { TranslationModule } from './modules/translation/translation.module';
 import { BackupModule } from './modules/backup/backup.module';
+import { RestoreModule } from './modules/restore/restore.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -90,6 +91,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     WhatsappModule,
     TranslationModule,
     BackupModule,
+    RestoreModule,
     SeedModule,
   ],
   controllers: [AppController],

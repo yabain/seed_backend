@@ -89,17 +89,18 @@ export class BackupService {
     return { stream: archive, filename };
   }
 
-  /** Ajoute récursivement un répertoire à l'archive sous `zipRoot`. */
+  /** Ajoute récursivement les FICHIERS d'un répertoire à l'archive. */
   private async appendDirectory(
     archive: ZipArchiveInstance,
     sourceDir: string,
     zipRoot: string,
   ): Promise<void> {
+    // N'ajoute que les fichiers : les dossiers parent du zip sont créés de
+    // façon implicite par les chemins. Évite les doublons (ne pas appeler
+    // archive.directory() qui recrée toute l'arborescence en plus).
     const entries = await this.collectEntries(sourceDir, zipRoot);
     for (const entry of entries) {
-      if (entry.isDirectory) {
-        archive.directory(entry.path, entry.name);
-      } else {
+      if (!entry.isDirectory) {
         archive.append(createReadStream(entry.path), {
           name: entry.name,
         });
