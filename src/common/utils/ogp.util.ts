@@ -64,7 +64,8 @@ export interface OgpPageOptions {
 
 export function renderOgpPage(opts: OgpPageOptions): string {
   const title = opts.title?.trim() || 'Contenu';
-  const description = toSnippet(opts.description || '');
+  const description = toSnippet(opts.description || '') ||
+    `Découvrez «${title}».`;
   const image = opts.image || '';
   const favicon = opts.favicon || '';
   const imageTags = image
