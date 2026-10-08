@@ -140,7 +140,7 @@ export function renderEmailLayout(options: {
                   ${escapeHtml(footerText ?? `© ${year} ${orgName}. Tous droits réservés.`)}
                 </p>
                 <p style="margin:0;color:#94a3b8;font-size:11px;">
-                  Cet e-mail a été envoyé automatiquement par la plateforme ${orgName}. Merci de ne pas y répondre directement.</p>
+                  Cet e-mail a été envoyé automatiquement par la plateforme ${orgName}. Merci de ne pas y répondre.</p>
                 ${socialHtml}
               </td>
             </tr>

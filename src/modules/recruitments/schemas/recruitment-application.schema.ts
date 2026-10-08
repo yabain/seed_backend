@@ -59,6 +59,9 @@ export class RecruitmentApplication {
   @Prop({ default: '' })
   lastName: string;
 
+  @Prop({ required: true, default: '' })
+  phone: string;
+
   @Prop({
     enum: RECRUITMENT_APPLICATION_STATUSES,
     default: 'pending',

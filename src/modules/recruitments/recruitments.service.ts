@@ -928,9 +928,10 @@ export class RecruitmentsService {
     // WhatsApp (best effort) : notification aux admins + accusé au candidat.
     const candidateName = `${application.firstName} ${application.lastName}`.trim();
     const adminMsg = [
-      `🆕 Nouvelle candidature — ${campaign.title}`,
+      `Nouvelle candidature : ${campaign.title}`,
       candidateName ? `\n\nDe : ${candidateName}` : '',
-      `\nE-mail : ${application.email}`,
+      `\nE-mail : ${application.email}
+      \nTéléphone : ${application.phone}`,
     ].join('');
     await this.notifyRecruitmentAdminsWhatsapp(adminMsg);
 
@@ -938,7 +939,7 @@ export class RecruitmentsService {
     if (applicantPhone) {
       await this.sendWhatsapp(
         applicantPhone,
-        `✅ Candidature reçue — ${campaign.title}\n\nBonjour ${application.firstName || 'à vous'}, votre candidature a bien été enregistrée. Nous vous recontacterons.`,
+        `Candidature reçue : ${campaign.title}\n\nBonjour ${application.firstName || 'à vous'}, \nMerci de l'intéret que vous portez à notre institution. \n\nVotre candidature a bien été enregistrée. Nous reviendrons vers vous si besoin.\nPour plus d'informations, n'hésitez pas à nous laisser un message via notre formulaire de contact.\n`,
       );
     }
   }
