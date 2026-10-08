@@ -12,6 +12,7 @@ import { NewsCategoryModule } from './modules/news-category/news-category.module
 import { ResourcesModule } from './modules/resources/resources.module';
 import { ProgramsModule } from './modules/programs/programs.module';
 import { PartnersModule } from './modules/partners/partners.module';
+import { AvisModule } from './modules/avis/avis.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { ProspectsModule } from './modules/prospects/prospects.module';
 import { StatsModule } from './modules/stats/stats.module';
@@ -67,6 +68,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     ResourcesModule,
     ProgramsModule,
     PartnersModule,
+    AvisModule,
     ContactModule,
     ProspectsModule,
     StatsModule,

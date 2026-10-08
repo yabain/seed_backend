@@ -13,6 +13,7 @@ export class Segments {
   @Prop({ default: true }) team: boolean;
   @Prop({ default: true }) donations: boolean;
   @Prop({ default: true }) recruitments: boolean;
+  @Prop({ default: true }) avis: boolean;
 }
 
 export const SegmentsSchema = SchemaFactory.createForClass(Segments);

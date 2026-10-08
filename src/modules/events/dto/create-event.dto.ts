@@ -66,6 +66,11 @@ export class CreateEventDto {
   endDate: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  timezone?: string;
+
+  @IsOptional()
   @IsEnum(['soon', 'currently', 'ended'], {
     message: 'Statut invalide (soon, currently, ended)',
   })

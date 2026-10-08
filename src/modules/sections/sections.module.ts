@@ -9,7 +9,7 @@ import { HoverMenu, HoverMenuSchema } from './schemas/hover-menu.schema';
 import { SectionsService } from './sections.service';
 import { SectionsController } from './sections.controller';
 
-const TEXT_SECTION_NAMES = ['events', 'news', 'programs', 'partners', 'resources', 'team', 'donations', 'recruitments', 'newsletter', 'faq'];
+const TEXT_SECTION_NAMES = ['events', 'news', 'programs', 'partners', 'resources', 'team', 'donations', 'recruitments', 'newsletter', 'faq', 'avis'];
 
 const textModels = TEXT_SECTION_NAMES.map((name) => {
   const cap = name.charAt(0).toUpperCase() + name.slice(1);

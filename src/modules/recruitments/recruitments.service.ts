@@ -934,6 +934,8 @@ export class RecruitmentsService {
       \nTéléphone : ${application.phone}`,
     ].join('');
     await this.notifyRecruitmentAdminsWhatsapp(adminMsg);
+    // Notification aux numéros de contact du système (site-config.phone / phone2).
+    await this.notifySystemWhatsapp(adminMsg, siteConfig.phone, siteConfig.phone2);
 
     const applicantPhone = this.extractPhoneFromFields(application.fields);
     if (applicantPhone) {
@@ -947,6 +949,20 @@ export class RecruitmentsService {
   private async notifyRecruitmentAdminsWhatsapp(message: string): Promise<void> {
     const phones = await this.whatsappService.getAdminPhones('notifyRecruitment');
     for (const phone of phones) {
+      await this.sendWhatsapp(phone, message);
+    }
+  }
+
+  /** Notifie les numéros de contact du système (site-config.phone / phone2) par WhatsApp. */
+  private async notifySystemWhatsapp(
+    message: string,
+    ...phones: Array<string | undefined>
+  ): Promise<void> {
+    const seen = new Set<string>();
+    for (const raw of phones) {
+      const phone = (raw ?? '').trim();
+      if (!phone || seen.has(phone)) continue;
+      seen.add(phone);
       await this.sendWhatsapp(phone, message);
     }
   }

@@ -70,6 +70,10 @@ export class NavVisibilityDto {
   @IsOptional()
   @IsBoolean()
   recruitments?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  avis?: boolean;
 }
 
 export class SegmentsDto {
@@ -104,6 +108,10 @@ export class SegmentsDto {
   @IsOptional()
   @IsBoolean()
   recruitments?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  avis?: boolean;
 }
 
 export class LandingSectionTextDto {
@@ -170,6 +178,10 @@ export class LandingSectionsDto {
   @ValidateNested()
   @Type(() => LandingSectionTextDto)
   recruitments?: LandingSectionTextDto;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LandingSectionTextDto)
+  avis?: LandingSectionTextDto;
   @IsOptional()
   @ValidateNested()
   @Type(() => LandingSectionTextDto)

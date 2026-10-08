@@ -39,6 +39,9 @@ export class SectionsController {
   @Public() @Get('faq-section') getFaq() { return this.sectionsService.getFaq(); }
   @Put('faq-section') updateFaq(@Body() dto: UpdateSectionTextDto) { return this.sectionsService.updateFaq(dto); }
 
+  @Public() @Get('avis-section') getAvis() { return this.sectionsService.getAvis(); }
+  @Put('avis-section') updateAvis(@Body() dto: UpdateSectionTextDto) { return this.sectionsService.updateAvis(dto); }
+
   @Public() @Get('identity-section') getIdentity() { return this.sectionsService.getIdentity(); }
   @Put('identity-section') updateIdentity(@Body() dto: UpdateIdentityDto) { return this.sectionsService.updateIdentity(dto); }
 

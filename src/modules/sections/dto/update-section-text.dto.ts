@@ -49,6 +49,7 @@ export class UpdateSegmentsDto {
   @IsOptional() @IsBoolean() team?: boolean;
   @IsOptional() @IsBoolean() donations?: boolean;
   @IsOptional() @IsBoolean() recruitments?: boolean;
+  @IsOptional() @IsBoolean() avis?: boolean;
 }
 
 export class UpdateNavVisibilityDto {
@@ -60,6 +61,7 @@ export class UpdateNavVisibilityDto {
   @IsOptional() @IsBoolean() team?: boolean;
   @IsOptional() @IsBoolean() donations?: boolean;
   @IsOptional() @IsBoolean() recruitments?: boolean;
+  @IsOptional() @IsBoolean() avis?: boolean;
 }
 
 export class UpdateHoverMenuDto {

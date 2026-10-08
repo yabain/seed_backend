@@ -44,7 +44,8 @@ export class ContactService {
       createdAt: Date;
     };
 
-    const recipients = await this.resolveRecipients();
+    const siteConfig = await this.siteService.getPublicConfig();
+    const recipients = await this.resolveRecipients(siteConfig.email);
     const fromVisitor = {
       name: dto.name,
       email: dto.email,
@@ -54,7 +55,6 @@ export class ContactService {
       createdAt: message.createdAt,
     };
 
-    const siteConfig = await this.siteService.getPublicConfig();
     const branding: ContactTemplateOptions['branding'] = {
       logo: this.siteService.resolveMediaUrl(emailLogoFromSiteConfig(siteConfig, this.configService)),
       orgName: siteConfig.orgName,
@@ -65,7 +65,7 @@ export class ContactService {
       secondary: siteConfig.secondaryColor,
     };
 
-    // 1) Notification aux administrateurs (avec récapitulatif complet).
+    // 1) Notification aux administrateurs + email de contact système.
     await this.mailService.send({
       to: recipients,
       subject: `Nouveau message de contact : ${dto.subject}`,
@@ -88,7 +88,7 @@ export class ContactService {
       }),
     });
 
-    // 3) WhatsApp (best effort) : notification aux admins + accusé au visiteur.
+    // 3) WhatsApp (best effort) : notification aux admins + numéros de contact système.
     const siteOrg = siteConfig.orgName?.trim() || 'Organisation';
     const messageForAdmin = [
       `🆕 Nouveau message de contact : ${siteOrg}`,
@@ -99,6 +99,7 @@ export class ContactService {
       `\n\n${dto.message}`,
     ].join('');
     await this.notifyAdminsWhatsapp(messageForAdmin);
+    await this.notifySystemWhatsapp(messageForAdmin, siteConfig.phone, siteConfig.phone2);
 
     const visitorPhone = (dto.phone ?? '').trim();
     if (visitorPhone) {
@@ -119,6 +120,20 @@ export class ContactService {
     }
   }
 
+  /** Notifie les numéros de contact du système (site-config.phone / phone2) par WhatsApp. */
+  private async notifySystemWhatsapp(
+    message: string,
+    ...phones: Array<string | undefined>
+  ): Promise<void> {
+    const seen = new Set<string>();
+    for (const raw of phones) {
+      const phone = (raw ?? '').trim();
+      if (!phone || seen.has(phone)) continue;
+      seen.add(phone);
+      await this.sendWhatsapp(phone, message);
+    }
+  }
+
   private async sendWhatsapp(phone: string, message: string): Promise<void> {
     const clean = (phone ?? '').trim();
     if (!clean) return;
@@ -132,8 +147,8 @@ export class ContactService {
     }
   }
 
-  /** Destinataires e-mail de la notification : admins/super-admins actifs avec `notifyContact: true`. */
-  private async resolveRecipients(): Promise<string[]> {
+  /** Destinataires e-mail : admins actifs (`notifyContact`) + email de contact système. */
+  private async resolveRecipients(siteEmail?: string): Promise<string[]> {
     const admins = await this.adminModel
       .find({
         isActive: true,
@@ -146,17 +161,25 @@ export class ContactService {
       .exec();
     const emails = admins.map((admin) => admin.email).filter(Boolean);
 
-    if (emails.length > 0) {
-      return emails;
-    }
+    // Email de contact système : site-config.email, sinon CONTACT_RECIPIENT_EMAIL.
+    const systemEmail = (siteEmail ?? '').trim();
+    const fallback = (
+      this.configService.get<string>('CONTACT_RECIPIENT_EMAIL') ?? ''
+    )
+      .split(',')
+      .map((email) => email.trim())
+      .filter(Boolean);
 
-    const fallback =
-      this.configService
-        .get<string>('CONTACT_RECIPIENT_EMAIL')
-        ?.split(',')
-        .map((email) => email.trim())
-        .filter(Boolean) ?? [];
-    return fallback;
+    const all = [...fallback, systemEmail ? systemEmail : '', ...emails]
+      .filter((email) => email && email.length > 0)
+      .filter((email, index, arr) => arr.indexOf(email) === index); // déduplique
+
+    if (all.length === 0) {
+      // Dernier filet : expéditeur SMTP, pour ne jamais perdre la notification.
+      const smtpUser = this.configService.get<string>('SMTP_USER') ?? '';
+      if (smtpUser) all.push(smtpUser);
+    }
+    return all;
   }
 
   async findAll(query: {

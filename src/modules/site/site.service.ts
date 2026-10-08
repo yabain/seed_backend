@@ -76,6 +76,7 @@ const DEFAULT_CONFIG = {
     team: true,
     donations: true,
     recruitments: true,
+    avis: true,
   },
   navVisibility: {
     news: true,
@@ -86,6 +87,7 @@ const DEFAULT_CONFIG = {
     team: true,
     donations: true,
     recruitments: true,
+    avis: true,
   },
   landingSections: {
     events: {
@@ -148,6 +150,12 @@ const DEFAULT_CONFIG = {
       buttonLabel: '',
       items: [],
       visible: true,
+    },
+    avis: {
+      eyebrow: 'Avis',
+      title: 'Ils nous recommandent',
+      description: 'Découvrez les témoignages de nos partenaires et bénéficiaires.',
+      buttonLabel: '',
     },
   },
   hoverMenu: {

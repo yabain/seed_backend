@@ -22,6 +22,7 @@ export class SectionsService {
     @InjectModel('RecruitmentsSection') private rc: any,
     @InjectModel('NewsletterSection') private nl: any,
     @InjectModel('FaqSection') private fq: any,
+    @InjectModel('AvisSection') private av: any,
     @InjectModel(Identity.name) private id: any,
     @InjectModel(Social.name) private sc: any,
     @InjectModel(Segments.name) private sg: any,
@@ -84,6 +85,8 @@ getEvents() { return this.go(this.ev).then(this.obj); }
   updateNewsletter(d: UpdateSectionTextDto) { return this.upAndSync(this.nl, d, 'newsletter'); }
   getFaq() { return this.go(this.fq).then(this.obj); }
   updateFaq(d: UpdateSectionTextDto) { return this.upAndSync(this.fq, d, 'faq'); }
+  getAvis() { return this.go(this.av).then(this.obj); }
+  updateAvis(d: UpdateSectionTextDto) { return this.upAndSync(this.av, d, 'avis'); }
   getIdentity() { return this.go(this.id); }
   async updateIdentity(d: UpdateIdentityDto) {
     const doc = await this.go(this.id);
@@ -172,10 +175,10 @@ getEvents() { return this.go(this.ev).then(this.obj); }
       this.ev.findOne().exec(), this.nw.findOne().exec(), this.pr.findOne().exec(),
       this.pt.findOne().exec(), this.rs.findOne().exec(), this.tm.findOne().exec(),
       this.dn.findOne().exec(), this.rc.findOne().exec(), this.nl.findOne().exec(),
-      this.fq.findOne().exec(),
+      this.fq.findOne().exec(), this.av.findOne().exec(),
     ]);
     const names = ['events', 'news', 'programs', 'partners', 'resources', 'team',
-                   'donations', 'recruitments', 'newsletter', 'faq'];
+                   'donations', 'recruitments', 'newsletter', 'faq', 'avis'];
     for (let i = 0; i < results.length; i++) {
       if (results[i]) landingSections[names[i]] = (results[i] as any).toObject();
     }

@@ -5,6 +5,9 @@ export type EventDocument = HydratedDocument<Event>;
 
 export type EventStatus = 'soon' | 'currently' | 'ended';
 
+/** Fuseau horaire par défaut des événements (GMT+1, Douala/Cameroun). */
+export const DEFAULT_EVENT_TIMEZONE = 'Africa/Douala';
+
 @Schema({ _id: false })
 export class Panelist {
   @Prop({ default: '' })
@@ -38,6 +41,9 @@ export class Event {
 
   @Prop({ required: true })
   endDate: Date;
+
+  @Prop({ default: DEFAULT_EVENT_TIMEZONE, trim: true })
+  timezone: string;
 
   @Prop({ enum: ['soon', 'currently', 'ended'], default: 'soon' })
   status: EventStatus;

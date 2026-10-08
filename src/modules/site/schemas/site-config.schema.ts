@@ -123,6 +123,7 @@ export class SiteConfig {
       team: { type: Boolean, default: true },
       donations: { type: Boolean, default: true },
       recruitments: { type: Boolean, default: true },
+      avis: { type: Boolean, default: true },
     },
     default: {},
   })
@@ -135,6 +136,7 @@ export class SiteConfig {
     team: boolean;
     donations: boolean;
     recruitments: boolean;
+    avis: boolean;
   };
 
   /**
@@ -153,6 +155,7 @@ export class SiteConfig {
       team: { type: Boolean, default: true },
       donations: { type: Boolean, default: true },
       recruitments: { type: Boolean, default: true },
+      avis: { type: Boolean, default: true },
     },
     default: {},
   })
@@ -165,6 +168,7 @@ export class SiteConfig {
     team: boolean;
     donations: boolean;
     recruitments: boolean;
+    avis: boolean;
   };
 
   @Prop({

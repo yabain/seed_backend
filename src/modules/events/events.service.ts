@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron } from '@nestjs/schedule';
 import { Model, isValidObjectId } from 'mongoose';
-import { Event, EventDocument } from './schemas/event.schema';
+import { Event, EventDocument, DEFAULT_EVENT_TIMEZONE } from './schemas/event.schema';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { deleteUploadFile } from '../../common/utils/upload-file.util';
@@ -67,6 +67,7 @@ export class EventsService {
   async create(dto: CreateEventDto): Promise<Event> {
     const event = new this.eventModel({
       ...dto,
+      timezone: dto.timezone?.trim() || DEFAULT_EVENT_TIMEZONE,
       status:
         dto.status ||
         this.computeStatus(new Date(dto.startDate), new Date(dto.endDate)),
@@ -162,6 +163,13 @@ export class EventsService {
     }
 
     const updateData: Record<string, unknown> = { ...dto };
+
+    // Fuseau : si absent dans le payload, on conserve l'existant, sinon le défaut.
+    if (dto.timezone === undefined) {
+      updateData.timezone = existing.timezone ?? DEFAULT_EVENT_TIMEZONE;
+    } else if (!dto.timezone.trim()) {
+      updateData.timezone = DEFAULT_EVENT_TIMEZONE;
+    }
 
     if (dto.startDate || dto.endDate) {
       const startDate = dto.startDate
