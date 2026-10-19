@@ -270,10 +270,10 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
 
     const html = renderEmailLayout({
       title: `Bienvenue chez ${siteConfig.orgName?.trim() || 'notre organisation'}`,
-      preheader: "Merci de vous être inscrit à notre lettre d'information.",
+      preheader: "Merci de vous être inscrit à notre boîte aux lettres.",
       contentHtml: `
         <p>Bonjour <strong>${escapeHtml(prospect.name || '')}</strong>,</p>
-        <p>Merci de vous être inscrit à notre lettre d'information. Vous recevrez bientôt nos actualités.</p>
+        <p>Merci de vous être inscrit à notre boîte aux lettres. Vous recevrez bientôt nos actualités.</p>
         <p style="margin:18px 0 0;color:#64748b;font-size:14px;">
           Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer cet e-mail.
         </p>
@@ -283,7 +283,7 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
 
     await this.mailService.send({
       to: prospect.email,
-      subject: `Bienvenue chez ${siteConfig.orgName?.trim() || 'notre organisation'} — Lettre d'information`,
+      subject: `Bienvenue chez ${siteConfig.orgName?.trim() || 'notre organisation'} — boîte aux lettres`,
       html,
     });
   }
@@ -299,7 +299,7 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
       const footer = whatsappNotificationFooter(this.configService);
       await this.whatsappService.sendText(
         phone,
-        `✅ ${orgName} — Inscription à la lettre d'information${name ? `\n\nBonjour ${name},` : '\n\nBonjour,'} votre inscription est bien enregistrée. Vous recevrez bientôt nos actualités.\n\n${footer}`,
+        `✅ ${orgName} — Inscription à la boîte aux lettres${name ? `\n\nBonjour ${name},` : '\n\nBonjour,'} votre inscription est bien enregistrée. Vous recevrez bientôt nos actualités.\n\n${footer}`,
       );
     } catch (error) {
       this.logger.warn(
@@ -334,10 +334,10 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
       };
       const name = prospect.name?.trim();
       const html = renderEmailLayout({
-        title: "Nouvelle inscription à la lettre d'information",
-        preheader: "Une personne vient de s'inscrire à la lettre d'information.",
+        title: "Nouvelle inscription à la boîte aux lettres",
+        preheader: "Une personne vient de s'inscrire à la boîte aux lettres.",
         contentHtml: `
-          <p>Un visiteur vient de s'inscrire à la lettre d'information :</p>
+          <p>Un visiteur vient de s'inscrire à la boîte aux lettres :</p>
           ${name ? `<p><strong>Nom :</strong> ${escapeHtml(name)}</p>` : ''}
           <p><strong>E-mail :</strong> ${escapeHtml(prospect.email)}</p>
           ${prospect.phone ? `<p><strong>Tél :</strong> ${escapeHtml(prospect.phone)}</p>` : ''}
@@ -346,7 +346,7 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
       });
       await this.mailService.send({
         to: emails,
-        subject: "Nouvelle inscription à la lettre d'information",
+        subject: "Nouvelle inscription à la boîte aux lettres",
         html,
       });
     }
@@ -357,7 +357,7 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
         const footer = whatsappNotificationFooter(this.configService);
         await this.whatsappService.sendText(
           phone,
-          `🆕 Nouvelle inscription à la lettre d'information\n\nNom : ${prospect.name?.trim() || '—'}\nE-mail : ${prospect.email}\nTél : ${prospect.phone || '—'}\n\n${footer}`,
+          `🆕 Nouvelle inscription à la boîte aux lettres\n\nNom : ${prospect.name?.trim() || '—'}\nE-mail : ${prospect.email}\nTél : ${prospect.phone || '—'}\n\n${footer}`,
         );
       } catch (error) {
         this.logger.warn(
