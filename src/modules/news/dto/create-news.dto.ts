@@ -1,13 +1,17 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
 } from 'class-validator';
 import type { NewsStatus } from '../schemas/news.schema';
+
+const MEDIA_URL_PATTERN = /^(?:https?:\/\/[^\s"'<>]+|\/uploads\/[^\s"'<>]+)$/i;
 
 export class CreateNewsDto {
   @IsString()
@@ -29,9 +33,24 @@ export class CreateNewsDto {
   @IsNotEmpty({ message: 'Le contenu est obligatoire' })
   content: string;
 
-  @IsOptional()
   @IsString()
-  image?: string;
+  @IsNotEmpty({ message: 'L’image principale est obligatoire' })
+  @Matches(MEDIA_URL_PATTERN, {
+    message: 'L’image principale doit être une URL valide',
+  })
+  @MaxLength(2048)
+  image: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(4, { message: 'La galerie ne peut pas dépasser 4 images' })
+  @IsString({ each: true })
+  @Matches(MEDIA_URL_PATTERN, {
+    each: true,
+    message: 'Chaque image de la galerie doit être une URL valide',
+  })
+  @MaxLength(2048, { each: true })
+  gallery?: string[];
 
   @IsOptional()
   @IsString()

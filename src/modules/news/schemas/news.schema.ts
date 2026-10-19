@@ -25,6 +25,9 @@ export class News {
   @Prop({ default: '' })
   image: string;
 
+  @Prop({ type: [String], default: [] })
+  gallery: string[];
+
   @Prop({ default: 'Organisation' })
   author: string;
 

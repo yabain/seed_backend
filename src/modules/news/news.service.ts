@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -23,6 +24,70 @@ function slugify(input: string): string {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function normalizeGallery(value?: string[]): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const seen = new Set<string>();
+  const gallery: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== 'string') {
+      continue;
+    }
+    const trimmed = entry.trim();
+    if (!trimmed || seen.has(trimmed)) {
+      continue;
+    }
+    seen.add(trimmed);
+    gallery.push(trimmed);
+    if (gallery.length >= 4) {
+      break;
+    }
+  }
+  return gallery;
+}
+
+export function mediaKey(value?: string): string {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+  let pathname: string;
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      pathname = new URL(trimmed).pathname;
+    } catch {
+      return '';
+    }
+  } else if (trimmed.startsWith('/')) {
+    pathname = trimmed;
+  } else if (trimmed.startsWith('uploads/')) {
+    pathname = `/${trimmed}`;
+  } else {
+    return '';
+  }
+  const match = pathname.match(/^\/uploads\/[^?#]+/);
+  return match ? match[0] : '';
+}
+
+export async function cleanupRemovedFiles(
+  previous: Array<string | undefined>,
+  next: Array<string | undefined>,
+): Promise<void> {
+  const nextKeys = new Set(next.map(mediaKey).filter(Boolean));
+  const removed = new Set<string>();
+  for (const value of previous) {
+    const key = mediaKey(value);
+    if (key && !nextKeys.has(key)) {
+      removed.add(key);
+    }
+  }
+  await Promise.allSettled(Array.from(removed, (key) => deleteUploadFile(key)));
 }
 
 @Injectable()
@@ -73,9 +138,18 @@ export class NewsService {
 
   async create(dto: CreateNewsDto): Promise<News> {
     const base = dto.slug || slugify(dto.title) || undefined;
+    const image = (dto.image ?? '').trim();
+    if (!image) {
+      throw new BadRequestException('L’image principale est obligatoire.');
+    }
+    const imageKey = mediaKey(image);
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const news = new this.newsModel({
         ...dto,
+        image,
+        gallery: normalizeGallery(dto.gallery).filter(
+          (url) => !imageKey || mediaKey(url) !== imageKey,
+        ),
         slug: await this.uniqueSlug(base),
         publishedAt: dto.status === 'published' ? new Date() : undefined,
       });
@@ -189,12 +263,34 @@ export class NewsService {
       throw new NotFoundException('Actualité introuvable');
     }
     const updateData: UpdateNewsDto & { publishedAt?: Date } = { ...dto };
+    // PATCH partiel : sans clé `gallery` dans le corps, le champ ne doit pas
+    // être écrit afin de conserver la galerie existante.
+    delete updateData.gallery;
+    const primaryImage =
+      dto.image !== undefined
+        ? typeof dto.image === 'string'
+          ? dto.image.trim()
+          : ''
+        : (existing.image ?? '').trim();
+    if (dto.image !== undefined) {
+      if (!primaryImage) {
+        throw new BadRequestException('L’image principale est obligatoire.');
+      }
+      updateData.image = primaryImage;
+    }
+    if (dto.gallery !== undefined) {
+      const primaryKey = mediaKey(primaryImage);
+      updateData.gallery = normalizeGallery(dto.gallery).filter(
+        (url) => !primaryKey || mediaKey(url) !== primaryKey,
+      );
+    }
     if (dto.status === 'published') {
       updateData.publishedAt = new Date();
     }
     if (dto.slug && dto.slug !== existing.slug) {
       updateData.slug = await this.uniqueSlug(dto.slug, realId);
     }
+    const previousFiles = [existing.image, ...(existing.gallery ?? [])];
     const news = await this.newsModel
       .findByIdAndUpdate(realId, updateData, { new: true })
       .lean()
@@ -202,6 +298,8 @@ export class NewsService {
     if (!news) {
       throw new NotFoundException('Actualité introuvable');
     }
+    const nextFiles = [news.image, ...(news.gallery ?? [])];
+    await cleanupRemovedFiles(previousFiles, nextFiles);
     return news;
   }
 
@@ -222,7 +320,7 @@ export class NewsService {
     if (!result) {
       throw new NotFoundException('Actualité introuvable');
     }
-    await deleteUploadFile(result.image);
+    await cleanupRemovedFiles([result.image, ...(result.gallery ?? [])], []);
     return { deleted: true };
   }
 }
