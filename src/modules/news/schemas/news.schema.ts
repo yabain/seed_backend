@@ -51,6 +51,10 @@ export class News {
 
   @Prop({ type: Date, default: null })
   archivedAt: Date | null;
+
+  /** Indique que cette actualité est « à la une » (une seule par site). */
+  @Prop({ default: false, index: true })
+  isFeatured: boolean;
 }
 
 export const NewsSchema = SchemaFactory.createForClass(News);

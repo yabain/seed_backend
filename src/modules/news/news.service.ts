@@ -219,19 +219,42 @@ export class NewsService {
   }
 
   async findLatest(limit = 3): Promise<News[]> {
-    return this.newsModel
-      .find({ status: 'published', isArchived: { $ne: true } })
+    // featured first, then by publishedAt desc
+    const items = await this.newsModel
+      .find({ status: 'published', isArchived: { $ne: true }, isFeatured: true })
       .sort({ publishedAt: -1 })
       .limit(limit)
       .lean()
       .exec();
+    if (items.length < limit) {
+      const more = await this.newsModel
+        .find({
+          status: 'published',
+          isArchived: { $ne: true },
+          _id: { $nin: items.map((i) => i._id) },
+        })
+        .sort({ publishedAt: -1 })
+        .limit(Math.max(0, limit - items.length))
+        .lean()
+        .exec();
+      items.push(...more);
+    }
+    return items;
   }
 
   async findVisibleOnLanding(limit = 10): Promise<News[]> {
     return this.newsModel
       .find({ status: 'published', isVisibleOnLanding: true, isArchived: { $ne: true } })
-      .sort({ publishedAt: -1 })
+      .sort({ isFeatured: -1, publishedAt: -1 })
       .limit(limit)
+      .lean()
+      .exec();
+  }
+
+  async findFeatured(): Promise<News | null> {
+    return this.newsModel
+      .findOne({ status: 'published', isFeatured: true, isArchived: { $ne: true } })
+      .sort({ publishedAt: -1 })
       .lean()
       .exec();
   }
@@ -287,6 +310,12 @@ export class NewsService {
     if (dto.status === 'published') {
       updateData.publishedAt = new Date();
     }
+    if (dto.isFeatured === true) {
+      await this.newsModel.updateMany(
+        { _id: { $ne: realId }, isFeatured: true },
+        { $set: { isFeatured: false } },
+      );
+    }
     if (dto.slug && dto.slug !== existing.slug) {
       updateData.slug = await this.uniqueSlug(dto.slug, realId);
     }
@@ -301,6 +330,20 @@ export class NewsService {
     const nextFiles = [news.image, ...(news.gallery ?? [])];
     await cleanupRemovedFiles(previousFiles, nextFiles);
     return news;
+  }
+
+  async setFeatured(id: string): Promise<News> {
+    const realId = this.ensureId(id);
+    const existing = await this.newsModel.findById(realId).exec();
+    if (!existing) {
+      throw new NotFoundException('Actualité introuvable');
+    }
+    await this.newsModel.updateMany(
+      { _id: { $ne: realId }, isFeatured: true },
+      { $set: { isFeatured: false } },
+    );
+    existing.isFeatured = true;
+    return existing.save();
   }
 
   async toggleArchive(id: string): Promise<News> {

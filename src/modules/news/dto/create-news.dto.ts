@@ -75,4 +75,8 @@ export class CreateNewsDto {
   @IsOptional()
   @IsBoolean()
   isVisibleOnLanding?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
 }

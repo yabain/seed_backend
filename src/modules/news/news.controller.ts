@@ -54,6 +54,12 @@ export class NewsController {
   }
 
   @Public()
+  @Get('featured')
+  async findFeatured() {
+    return this.newsService.findFeatured();
+  }
+
+  @Public()
   @Get('slug/:slug')
   findOneBySlug(@Param('slug') slug: string) {
     return this.newsService.findOneBySlug(slug);
@@ -122,6 +128,12 @@ export class NewsController {
   @Roles('admin', 'superadmin')
   toggleArchive(@Param('id') id: string) {
     return this.newsService.toggleArchive(id);
+  }
+
+  @Patch(':id/featured')
+  @Roles('admin', 'superadmin')
+  setFeatured(@Param('id') id: string) {
+    return this.newsService.setFeatured(id);
   }
 
   @Delete(':id')
