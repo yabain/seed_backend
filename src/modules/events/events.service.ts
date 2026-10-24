@@ -209,6 +209,9 @@ export class EventsService {
     }
     event.isArchived = !event.isArchived;
     event.archivedAt = event.isArchived ? new Date() : null;
+    if (event.isArchived) {
+      event.isVisibleOnLanding = false;
+    }
     return event.save();
   }
 

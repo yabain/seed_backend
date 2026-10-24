@@ -45,6 +45,12 @@ export class PartnersController {
     return this.partnersService.update(id, dto);
   }
 
+  @Patch(':id/toggle-active')
+  @Roles('admin', 'superadmin')
+  toggleActive(@Param('id') id: string) {
+    return this.partnersService.toggleActive(id);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.partnersService.remove(id);

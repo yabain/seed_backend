@@ -91,6 +91,14 @@ export class AvisService {
     return avis;
   }
 
+  async toggleActive(id: string): Promise<Avis> {
+    const realId = this.ensureId(id);
+    const avis = await this.avisModel.findById(realId).exec();
+    if (!avis) throw new NotFoundException('Avis introuvable');
+    avis.isActive = !avis.isActive;
+    return avis.save();
+  }
+
   async remove(id: string): Promise<{ deleted: boolean }> {
     const realId = this.ensureId(id);
     const before = await this.avisModel.findById(realId).exec();

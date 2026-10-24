@@ -95,6 +95,16 @@ export class PartnersService {
     return partner;
   }
 
+  async toggleActive(id: string): Promise<Partner> {
+    const realId = this.ensureId(id);
+    const partner = await this.partnerModel.findById(realId).exec();
+    if (!partner) {
+      throw new NotFoundException('Partenaire introuvable');
+    }
+    partner.isActive = !partner.isActive;
+    return partner.save();
+  }
+
   async remove(id: string): Promise<{ deleted: boolean }> {
     const realId = this.ensureId(id);
     const result = await this.partnerModel.findByIdAndDelete(realId).exec();

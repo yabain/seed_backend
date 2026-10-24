@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
+import { isValidObjectId } from 'mongoose';
 import { Model } from 'mongoose';
 import { Prospect, ProspectDocument } from './prospect.schema';
 import { Admin, AdminDocument } from '../auth/schemas/admin.schema';
@@ -56,6 +57,13 @@ export class ProspectsService {
     private readonly configService: ConfigService,
     private readonly whatsappService: WhatsappService,
   ) {}
+
+  async getOne(id: string): Promise<ProspectItem> {
+    const realId = this.ensureId(id);
+    const item = await this.prospectModel.findById(realId).lean().exec();
+    if (!item) throw new NotFoundException('Prospect introuvable.');
+    return { ...item, id: (item as any)._id.toString(), createdAt: (item as any).createdAt?.toISOString() || '' } as ProspectItem;
+  }
 
   async list(page = 1, limit = 25, keyword = ''): Promise<ProspectListResult> {
     const safePage = Number.isFinite(page) ? Math.max(1, Number(page)) : 1;
@@ -493,6 +501,13 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
     }
 
     return { totalRows: jsonData.length, created, updated, skipped, ignored };
+  }
+
+  private ensureId(id: string): string {
+    if (!isValidObjectId(id)) {
+      throw new NotFoundException('Prospect introuvable');
+    }
+    return id;
   }
 
   private isDuplicateKeyError(error: unknown): boolean {

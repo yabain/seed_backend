@@ -57,6 +57,11 @@ export class ProspectsController {
     return this.prospectsService.create(dto);
   }
 
+  @Get(':id')
+  getOne(@Param('id') id: string) {
+    return this.prospectsService.getOne(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: CreateProspectDto) {
     return this.prospectsService.update(id, dto);

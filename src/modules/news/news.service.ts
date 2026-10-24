@@ -354,6 +354,9 @@ export class NewsService {
     }
     news.isArchived = !news.isArchived;
     news.archivedAt = news.isArchived ? new Date() : null;
+    if (news.isArchived) {
+      news.isVisibleOnLanding = false;
+    }
     return news.save();
   }
 

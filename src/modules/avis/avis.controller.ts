@@ -45,6 +45,12 @@ export class AvisController {
     return this.avisService.update(id, dto);
   }
 
+  @Patch(':id/toggle-active')
+  @Roles('admin', 'superadmin')
+  toggleActive(@Param('id') id: string) {
+    return this.avisService.toggleActive(id);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.avisService.remove(id);
