@@ -43,6 +43,14 @@ export interface ProspectListResult {
   pagination: ProspectPagination;
 }
 
+export interface ProspectImportResult {
+  totalRows: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  ignored: number;
+}
+
 @Injectable()
 export class ProspectsService {
   private readonly logger = new Logger(ProspectsService.name);
@@ -390,7 +398,7 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
         Telephone: typeof raw.phone === 'string' ? raw.phone : '',
         'Date inscription':
           raw.createdAt instanceof Date
-            ? raw.createdAt.toISOString().split('T')[0]
+            ? raw.createdAt.toISOString().replace('T', ' ').split('.')[0]
             : '',
       };
     });
@@ -420,9 +428,8 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Prospects');
 
-    return Buffer.from(
-      XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }),
-    );
+    const bufferData = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    return Buffer.isBuffer(bufferData) ? bufferData : Buffer.from(bufferData as ArrayBuffer);
   }
 
   private getString(row: Record<string, unknown>, keys: string[]): string {
@@ -435,12 +442,217 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
     return '';
   }
 
-  async importExcel(buffer: Buffer): Promise<{
-    totalRows: number;
-    created: number;
-    updated: number;
-    skipped: number;
-    ignored: number;
+  /** Liste des pays avec indicatif de téléphone (pour le modal d'import). */
+  readonly COUNTRY_INDICATORS = new Map([
+    ['237', '+237'],
+    ['225', '+225'],
+    ['241', '+241'],
+    ['226', '+226'],
+    ['255', '+255'],
+    ['263', '+263'],
+    ['27', '+27'],
+    ['298', '+298'],
+    ['299', '+299'],
+    ['91', '+91'],
+    ['234', '+234'],
+    ['239', '+239'],
+    ['250', '+250'],
+    ['240', '+240'],
+    ['248', '+248'],
+    ['268', '+268'],
+    ['355', '+355'],
+    ['372', '+372'],
+    ['380', '+380'],
+    ['381', '+381'],
+    ['382', '+382'],
+    ['385', '+385'],
+    ['39', '+39'],
+    ['40', '+40'],
+    ['421', '+421'],
+    ['423', '+423'],
+    ['43', '+43'],
+    ['503', '+503'],
+    ['504', '+504'],
+    ['506', '+506'],
+    ['52', '+52'],
+    ['53', '+53'],
+    ['54', '+54'],
+    ['55', '+55'],
+    ['56', '+56'],
+    ['57', '+57'],
+    ['60', '+60'],
+    ['63', '+63'],
+    ['64', '+64'],
+    ['65', '+65'],
+    ['66', '+66'],
+    ['670', '+670'],
+    ['673', '+673'],
+    ['680', '+680'],
+    ['681', '+681'],
+    ['682', '+682'],
+    ['683', '+683'],
+    ['686', '+686'],
+    ['689', '+689'],
+    ['700', '+700'],
+    ['704', '+704'],
+    ['706', '+706'],
+    ['707', '+707'],
+    ['708', '+708'],
+    ['709', '+709'],
+    ['710', '+710'],
+    ['712', '+712'],
+    ['713', '+713'],
+    ['714', '+714'],
+    ['716', '+716'],
+    ['718', '+718'],
+    ['719', '+719'],
+    ['720', '+720'],
+    ['722', '+722'],
+    ['724', '+724'],
+    ['729', '+729'],
+    ['740', '+740'],
+    ['752', '+752'],
+    ['755', '+755'],
+    ['757', '+757'],
+    ['758', '+758'],
+    ['760', '+760'],
+    ['762', '+762'],
+    ['763', '+763'],
+    ['764', '+764'],
+    ['767', '+767'],
+    ['768', '+768'],
+    ['772', '+772'],
+    ['773', '+773'],
+    ['779', '+779'],
+    ['780', '+780'],
+    ['787', '+787'],
+    ['790', '+790'],
+    ['792', '+792'],
+    ['794', '+794'],
+    ['795', '+795'],
+    ['798', '+798'],
+    ['800', '+800'],
+    ['801', '+801'],
+    ['807', '+807'],
+    ['826', '+826'],
+    ['850', '+850'],
+    ['852', '+852'],
+    ['856', '+856'],
+    ['860', '+860'],
+    ['861', '+861'],
+    ['863', '+863'],
+    ['867', '+867'],
+    ['868', '+868'],
+    ['869', '+869'],
+    ['870', '+870'],
+    ['873', '+873'],
+    ['880', '+880'],
+    ['881', '+881'],
+    ['882', '+882'],
+    ['883', '+883'],
+    ['886', '+886'],
+    ['900', '+900'],
+    ['901', '+901'],
+    ['903', '+903'],
+    ['905', '+905'],
+    ['906', '+906'],
+    ['909', '+909'],
+    ['910', '+910'],
+    ['911', '+911'],
+    ['912', '+912'],
+    ['913', '+913'],
+    ['914', '+914'],
+    ['916', '+916'],
+    ['917', '+917'],
+    ['918', '+918'],
+    ['919', '+919'],
+    ['920', '+920'],
+    ['922', '+922'],
+    ['923', '+923'],
+    ['924', '+924'],
+    ['925', '+925'],
+    ['926', '+926'],
+    ['927', '+927'],
+    ['928', '+928'],
+    ['929', '+929'],
+    ['930', '+930'],
+    ['931', '+931'],
+    ['932', '+932'],
+    ['933', '+933'],
+    ['934', '+934'],
+    ['935', '+935'],
+    ['936', '+936'],
+    ['937', '+937'],
+    ['938', '+938'],
+    ['939', '+939'],
+    ['940', '+940'],
+    ['941', '+941'],
+    ['942', '+942'],
+    ['943', '+943'],
+    ['944', '+944'],
+    ['945', '+945'],
+    ['946', '+946'],
+    ['947', '+947'],
+    ['948', '+948'],
+    ['949', '+949'],
+    ['950', '+950'],
+    ['951', '+951'],
+    ['952', '+952'],
+    ['953', '+953'],
+    ['954', '+954'],
+    ['955', '+955'],
+    ['956', '+956'],
+    ['957', '+957'],
+    ['958', '+958'],
+    ['959', '+959'],
+    ['960', '+960'],
+    ['961', '+961'],
+    ['962', '+962'],
+    ['963', '+963'],
+    ['964', '+964'],
+    ['965', '+965'],
+    ['966', '+966'],
+    ['967', '+967'],
+    ['968', '+968'],
+    ['969', '+969'],
+    ['970', '+970'],
+    ['971', '+971'],
+    ['972', '+972'],
+    ['973', '+973'],
+    ['974', '+974'],
+    ['975', '+975'],
+    ['976', '+976'],
+    ['977', '+977'],
+    ['978', '+978'],
+    ['979', '+979'],
+    ['980', '+980'],
+    ['981', '+981'],
+    ['982', '+982'],
+    ['983', '+983'],
+    ['984', '+984'],
+    ['985', '+985'],
+    ['986', '+986'],
+    ['987', '+987'],
+    ['988', '+988'],
+    ['989', '+989'],
+  ]);
+
+  private hasCountryIndicator(phone: string): boolean {
+    const normalized = phone.replace(/[^0-9+]/g, '');
+    if (normalized === '' || !/[+\d]/.test(normalized)) return false;
+    if (normalized.startsWith('+')) return true;
+    // Numéro international sans + : forme ex : "2370000000000" → indiqué que c'est French
+    // Nous vparons la liste des codes pays (2-3 chiffres)
+    for (const prefix of this.COUNTRY_INDICATORS.keys()) {
+      if (normalized.startsWith(prefix)) return true;
+    }
+    return false;
+  }
+
+  async importExcel(buffer: Buffer, defaultIndicator?: string): Promise<ProspectImportResult & {
+    needsIndicator?: boolean;
+    indicatorCountry?: string;
+    unmatchedPhoneValues?: string[];
   }> {
     const XLSX = await import('xlsx');
     const workbook = XLSX.read(buffer, { type: 'buffer' });
@@ -453,13 +665,21 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
     let updated = 0;
     let skipped = 0;
     let ignored = 0;
+    const unmatchedPhoneValues: string[] = [];
+    let matchedCountries: string[] = [];
 
     for (const row of jsonData) {
       const name = this.getString(row, ['Nom', 'name']).trim();
       const email = this.getString(row, ['Email', 'email'])
         .trim()
         .toLowerCase();
-      const phone = this.getString(row, ['Telephone', 'phone']).trim();
+      let phone = this.getString(row, ['Telephone', 'phone']).trim();
+
+      // Appliquer indicatif par défaut si nécessaire (avant recherche/ajout)
+      if (phone && defaultIndicator && !this.hasCountryIndicator(phone)) {
+        const indicatorValue = defaultIndicator.startsWith('+') ? defaultIndicator.slice(1) : defaultIndicator;
+        phone = '+' + indicatorValue + phone.replace(/[^0-9]/g, '');
+      }
 
       if (!email && !phone) {
         ignored++;
@@ -498,9 +718,47 @@ private async sendConfirmationEmail(prospect: ProspectItem): Promise<void> {
           }
         }
       }
+
+      if (phone) {
+        if (!this.hasCountryIndicator(phone)) {
+          unmatchedPhoneValues.push(phone);
+          matchedCountries = [...new Set([...matchedCountries, ...this.possibleCountries(phone)])];
+        }
+      }
     }
 
-    return { totalRows: jsonData.length, created, updated, skipped, ignored };
+    if (unmatchedPhoneValues.length > 0) {
+      return {
+        totalRows: jsonData.length,
+        created,
+        updated,
+        skipped,
+        ignored,
+        needsIndicator: true,
+        indicatorCountry: matchedCountries[0] || undefined,
+        unmatchedPhoneValues,
+      };
+    }
+
+    return {
+      totalRows: jsonData.length,
+      created,
+      updated,
+      skipped,
+      ignored,
+    };
+  }
+
+  private possibleCountries(phone: string): string[] {
+    const normalized = phone.replace(/[^0-9]/g, '');
+    if (!/^\d{2,4}/.test(normalized)) return [];
+    const matches: string[] = [];
+    for (const code of this.COUNTRY_INDICATORS.keys()) {
+      if (normalized.startsWith(code)) {
+        matches.push(code);
+      }
+    }
+    return matches;
   }
 
   private ensureId(id: string): string {

@@ -57,33 +57,7 @@ export class ProspectsController {
     return this.prospectsService.create(dto);
   }
 
-  @Get(':id')
-  getOne(@Param('id') id: string) {
-    return this.prospectsService.getOne(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: CreateProspectDto) {
-    return this.prospectsService.update(id, dto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.prospectsService.delete(id);
-  }
-
-  @Get('export')
-  async export(@Req() req: any) {
-    const buffer = await this.prospectsService.exportExcel();
-    const res = req.res;
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader('Content-Disposition', 'attachment; filename=prospects.xlsx');
-    res.end(buffer);
-  }
-
+  // Routes spécifiques doivent venir avant :id (car NestJS les compile en priorité)
   @Get('template')
   async template(@Req() req: any) {
     const buffer = await this.prospectsService.downloadTemplate();
@@ -99,11 +73,38 @@ export class ProspectsController {
     res.end(buffer);
   }
 
+  @Get('export')
+  async export(@Req() req: any) {
+    const buffer = await this.prospectsService.exportExcel();
+    const res = req.res;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename=prospects.xlsx');
+    res.end(buffer);
+  }
+
   @Post('import')
-  async import(@Req() req: any, @Body() body: { file: string }) {
+  async import(@Req() req: any, @Body() body: { file: string; defaultIndicator?: string }) {
     const base64 = body.file;
     const buffer = Buffer.from(base64, 'base64');
-    const result = await this.prospectsService.importExcel(buffer);
+    const result = await this.prospectsService.importExcel(buffer, body.defaultIndicator);
     return result;
+  }
+
+  @Get(':id')
+  getOne(@Param('id') id: string) {
+    return this.prospectsService.getOne(id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: CreateProspectDto) {
+    return this.prospectsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.prospectsService.delete(id);
   }
 }
